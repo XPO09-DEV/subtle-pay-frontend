@@ -18,7 +18,8 @@ export default function Send() {
     setError("");
     try {
       // check that the name exists (skip if it's a 0x address)
-      if (!to.startsWith("0x")) await api.resolveAlias(to);
+      const handle = to.trim().toLowerCase().replace(/@monad$/, "").replace(/^@/, "");
+      if (!to.startsWith("0x")) await api.resolveAlias(handle);
       setStep("confirm");
     } catch (e) {
       setError((e as Error).message);
