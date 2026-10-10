@@ -1,26 +1,17 @@
 import { useNavigate } from "react-router-dom";
-<<<<<<< HEAD
-import { clearToken, getToken, saveToken } from "../api/client";
-=======
-import { api, clearToken, getToken, saveToken } from "../api/client";
->>>>>>> a26f18097bfee4d553da3f1a17dee27e2f322425
+import { api, clearToken, getToken, saveSession } from "../api/client";
 
 export function useAuth() {
   const navigate = useNavigate();
+
   return {
-    isLoggedIn: !!getToken(),
-    login: (token: string) => saveToken(token),
+    isLoggedIn: Boolean(getToken()),
+    login: (token: string, refreshToken?: string) => saveSession(token, refreshToken),
     logout: () => {
-<<<<<<< HEAD
-=======
-      api.logout().catch(() => undefined);
->>>>>>> a26f18097bfee4d553da3f1a17dee27e2f322425
-      clearToken();
-      navigate("/login");
+      void api.logout().catch(() => undefined).finally(() => {
+        clearToken();
+        navigate("/login", { replace: true });
+      });
     },
   };
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> a26f18097bfee4d553da3f1a17dee27e2f322425
