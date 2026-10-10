@@ -9,7 +9,8 @@ export default function Register() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
-  const [accountId, setAccountId] = useState(""); // filled after account is made
+  const [loading, setLoading] = useState(false);
+  const [accountId, setAccountId] = useState("");
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -18,49 +19,53 @@ export default function Register() {
     { text: "One number", ok: /\d/.test(password) },
     { text: "One uppercase letter", ok: /[A-Z]/.test(password) },
   ];
-  const canSubmit = rules.every((r) => r.ok) && password === confirm;
+  const canSubmit = rules.every((rule) => rule.ok) && password === confirm && !loading;
 
   async function submit() {
+    if (!canSubmit) return;
+    setLoading(true);
+    setError("");
     try {
-      const res = await api.register(password);
-      login(res.token);
-      setAccountId(res.accountId); // switches to the "ID Generated" view
-    } catch (e) {
-      setError((e as Error).message);
+      const session = await api.register(password);
+      login(session.token, session.refreshToken);
+      setAccountId(session.accountId ?? "");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Unable to create your account.");
+    } finally {
+      setLoading(false);
     }
   }
 
-  // Screen 2: show the ID once
   if (accountId) {
     return (
       <div className="space-y-4 p-6 pt-24 text-center">
         <h1 className="text-2xl font-semibold">Your Subtle Pay ID</h1>
         <p className="text-sm text-gray-500">Keep it safe and do not share it with anyone.</p>
         <div className="break-all rounded-xl bg-soft p-4 font-mono">{accountId}</div>
-        <Button variant="light" onClick={() => navigator.clipboard.writeText(accountId)}>Copy</Button>
+        <Button variant="light" onClick={() => navigator.clipboard.writeText(accountId)}>Copy ID</Button>
         <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-700">
           Save this ID somewhere safe. You'll need it to log in.
         </p>
-        <Button onClick={() => navigate("/")}>I've saved it</Button>
+        <Button onClick={() => navigate("/", { replace: true })}>I've saved it</Button>
       </div>
     );
   }
 
-  // Screen 1: the form
   return (
     <div className="space-y-4 p-6 pt-16">
       <h1 className="text-2xl font-semibold">Create your Subtle Pay account</h1>
-      <Input label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-      <Input label="Confirm password" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+      <Input label="Password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" required />
+      <Input label="Confirm password" type="password" value={confirm} onChange={(event) => setConfirm(event.target.value)} autoComplete="new-password" required />
       <ul className="space-y-1 text-sm">
-        {rules.map((r) => (
-          <li key={r.text} className={r.ok ? "text-brand" : "text-gray-400"}>
-            {r.ok ? "✓" : "○"} {r.text}
+        {rules.map((rule) => (
+          <li key={rule.text} className={rule.ok ? "text-brand" : "text-gray-400"}>
+            {rule.ok ? "✓" : "○"} {rule.text}
           </li>
         ))}
       </ul>
-      {error && <p className="text-sm text-red-600">{error}</p>}
-      <Button onClick={submit} disabled={!canSubmit}>Create account</Button>
+      {password !== confirm && confirm && <p className="text-sm text-red-600">Passwords do not match.</p>}
+      {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
+      <Button onClick={submit} disabled={!canSubmit}>{loading ? "Creating account..." : "Create account"}</Button>
       <p className="text-center text-sm">
         Already have an account? <Link to="/login" className="text-brand">Log in</Link>
       </p>
