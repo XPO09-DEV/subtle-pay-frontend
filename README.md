@@ -1,32 +1,36 @@
-# React + TypeScript + Vite
+# Subtle Pay frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+React + TypeScript + Vite client for the Subtle Pay Monad testnet backend.
 
-Currently, two official plugins are available:
+## Requirements
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Node.js 22 or newer
+- The [Subtle Pay backend](https://github.com/XPO09-DEV/Subtle-Pay-backend) running locally on port 4000
 
-## React Compiler
+## Run locally
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+1. Configure and start the backend first. Follow its README and create a private local `.env` from `.env.example`. Fill in fresh, valid secrets and Monad testnet settings. Never commit either `.env` file.
+2. In this repository, install dependencies and start Vite:
 
-## Expanding the Oxlint configuration
+   ```bash
+   npm ci
+   npm run dev
+   ```
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+3. Open the local URL printed by Vite (default `http://localhost:5173`).
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+During development, Vite proxies the API endpoints to `http://127.0.0.1:4000`; leave `VITE_API_URL` empty for this local setup. The client stores the short-lived access token and rotating refresh token in browser local storage and refreshes the session when an authenticated API call returns 401.
+
+## Production build
+
+Set `VITE_API_URL` to the deployed backend's HTTPS origin before building. Configure the backend `CORS_ORIGINS` to include the exact frontend origin.
+
+```bash
+npm ci
+npm run build
+npm run preview
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+## Important prototype limits
+
+Payments run on Monad testnet. Withdrawals are simulated records; they do not send money to a bank. Cross-chain bridge previews are simulations, not completed transfers. Do not use this prototype to store production funds or real user secrets.
