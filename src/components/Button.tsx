@@ -11,7 +11,11 @@ const styles = {
 export default function Button({ variant = "primary", className = "", ...rest }: Props) {
   return (
     <button
+<<<<<<< HEAD
       className={`min-h-12 w-full rounded-xl px-4 py-3 font-medium transition active:scale-[0.98] disabled:opacity-50 ${styles[variant]} ${className}`}
+=======
+      className={`w-full rounded-xl py-3 font-medium disabled:opacity-50 ${styles[variant]} ${className}`}
+>>>>>>> a26f18097bfee4d553da3f1a17dee27e2f322425
       {...rest}
     />
   );

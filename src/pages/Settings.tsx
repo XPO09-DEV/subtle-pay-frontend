@@ -5,7 +5,10 @@ import type { Me } from "../types/api";
 import BottomNav from "../components/BottomNav";
 import Button from "../components/Button";
 import Input from "../components/Input";
+<<<<<<< HEAD
 import CurrencyPicker from "../components/CurrencyPicker";
+=======
+>>>>>>> a26f18097bfee4d553da3f1a17dee27e2f322425
 
 export default function Settings() {
   const [me, setMe] = useState<Me | null>(null);
@@ -34,6 +37,7 @@ export default function Settings() {
       <div className="break-all rounded-xl bg-white p-4 text-sm">
         <b>@{me?.alias ?? "no name yet"}</b>
         <p className="text-gray-400">{me?.accountId}</p>
+<<<<<<< HEAD
       <div className="space-y-1">
         <p className="text-xs text-gray-500">Currency</p>
         <CurrencyPicker
@@ -44,6 +48,19 @@ export default function Settings() {
      </div>
       </div>
 
+=======
+      </div>
+
+      <select
+        value={me?.currency ?? "USD"}
+        onChange={(e) => run(() => api.setCurrency(e.target.value), "Currency updated")}
+        className="w-full rounded-xl border bg-white p-3"
+      >
+        <option>USD</option>
+        <option>INR</option>
+      </select>
+
+>>>>>>> a26f18097bfee4d553da3f1a17dee27e2f322425
       <Input label="Choose a name (alias)" value={alias} onChange={(e) => setAlias(e.target.value)} />
       <Button variant="light" onClick={() => run(() => api.setAlias(alias), "Name saved")}>Save name</Button>
 

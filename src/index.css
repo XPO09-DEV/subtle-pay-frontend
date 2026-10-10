@@ -6,16 +6,20 @@
   --color-soft: #e8f3ee;
 }
 
+<<<<<<< HEAD
 html,
 body,
 #root {
   min-height: 100dvh;
 }
 
+=======
+>>>>>>> a26f18097bfee4d553da3f1a17dee27e2f322425
 body {
   background: #faf8f4;
   color: #1c2b25;
   font-family: system-ui, sans-serif;
+<<<<<<< HEAD
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: none;
   padding-top: env(safe-area-inset-top);
@@ -31,4 +35,6 @@ textarea {
 button {
   cursor: pointer;
   touch-action: manipulation;
+=======
+>>>>>>> a26f18097bfee4d553da3f1a17dee27e2f322425
 }

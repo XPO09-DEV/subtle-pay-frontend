@@ -26,8 +26,14 @@ export const api = {
     request<{ accountId: string; token: string }>("POST", "/auth/register", { password }),
   login: (accountId: string, password: string) =>
     request<{ token: string }>("POST", "/auth/login", { accountId, password }),
+<<<<<<< HEAD
   changePassword: (oldPassword: string, newPassword: string) =>
     request<{ ok: boolean }>("POST", "/auth/changepassword", { oldPassword, newPassword }),
+=======
+  logout: () => request<{ ok: boolean }>("POST", "/auth/logout"),
+  changePassword: (oldPassword: string, newPassword: string) =>
+    request<{ ok: boolean }>("POST", "/auth/change-password", { oldPassword, newPassword }),
+>>>>>>> a26f18097bfee4d553da3f1a17dee27e2f322425
   getMe: () => request<Me>("GET", "/me"),
   setCurrency: (currency: string) => request<{ currency: string }>("PUT", "/me/currency", { currency }),
   getWallet: () => request<Wallet>("GET", "/wallet"),
@@ -36,7 +42,14 @@ export const api = {
   getRates: (currency: string) => request<Rates>("GET", `/rates?currency=${currency}`),
   send: (to: string, amount: number, amountCurrency: string, note?: string) =>
     request<SendResult>("POST", "/payments/send", { to, amount, amountCurrency, note }),
+<<<<<<< HEAD
   getPayments: () => request<Payment[]>("GET", "/payments"),
+=======
+  getPayments: async () => {
+    const data = await request<Payment[] | { payments: Payment[] }>("GET", "/payments");
+    return Array.isArray(data) ? data : data.payments;
+  },
+>>>>>>> a26f18097bfee4d553da3f1a17dee27e2f322425
   withdraw: (amount: number, currency: string) =>
     request<{ withdrawalId: string; status: string; payoutLocal: number }>("POST", "/withdraw", {
       amount,
