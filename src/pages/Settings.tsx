@@ -5,10 +5,7 @@ import type { Me } from "../types/api";
 import BottomNav from "../components/BottomNav";
 import Button from "../components/Button";
 import Input from "../components/Input";
-<<<<<<< HEAD
 import CurrencyPicker from "../components/CurrencyPicker";
-=======
->>>>>>> a26f18097bfee4d553da3f1a17dee27e2f322425
 
 export default function Settings() {
   const [me, setMe] = useState<Me | null>(null);
@@ -16,18 +13,28 @@ export default function Settings() {
   const [oldPw, setOldPw] = useState("");
   const [newPw, setNewPw] = useState("");
   const [msg, setMsg] = useState("");
+  const [loading, setLoading] = useState(false);
   const { logout } = useAuth();
 
-  useEffect(() => { api.getMe().then(setMe); }, []);
+  useEffect(() => {
+    let active = true;
+    api.getMe().then((value) => { if (active) setMe(value); }).catch((cause) => {
+      if (active) setMsg(cause instanceof Error ? cause.message : "Could not load settings.");
+    });
+    return () => { active = false; };
+  }, []);
 
-  // runs any action and shows success or error text
-  async function run(action: () => Promise<unknown>, ok: string) {
+  async function run(action: () => Promise<unknown>, successMessage: string) {
+    setLoading(true);
+    setMsg("");
     try {
       await action();
-      setMsg(ok);
-      api.getMe().then(setMe);
-    } catch (e) {
-      setMsg((e as Error).message);
+      setMsg(successMessage);
+      setMe(await api.getMe());
+    } catch (cause) {
+      setMsg(cause instanceof Error ? cause.message : "That change could not be saved.");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -37,40 +44,31 @@ export default function Settings() {
       <div className="break-all rounded-xl bg-white p-4 text-sm">
         <b>@{me?.alias ?? "no name yet"}</b>
         <p className="text-gray-400">{me?.accountId}</p>
-<<<<<<< HEAD
+      </div>
+
       <div className="space-y-1">
-        <p className="text-xs text-gray-500">Currency</p>
+        <p className="text-xs text-gray-500">Display currency</p>
         <CurrencyPicker
-         className="w-full"
-         value={me?.currency ?? "USD"}
-         onChange={(c) => run(() => api.setCurrency(c), "Currency updated")}
-       />
-     </div>
+          className="w-full"
+          value={me?.currency ?? "USD"}
+          onChange={(currency) => void run(() => api.setCurrency(currency), "Currency updated")}
+        />
       </div>
 
-=======
-      </div>
+      <Input label="Choose a name (alias)" value={alias} onChange={(event) => setAlias(event.target.value)} autoComplete="off" />
+      <Button variant="light" disabled={loading || !alias.trim()} onClick={() => void run(() => api.setAlias(alias.trim()), "Name saved")}>Save name</Button>
 
-      <select
-        value={me?.currency ?? "USD"}
-        onChange={(e) => run(() => api.setCurrency(e.target.value), "Currency updated")}
-        className="w-full rounded-xl border bg-white p-3"
+      <Input label="Old password" type="password" value={oldPw} onChange={(event) => setOldPw(event.target.value)} autoComplete="current-password" />
+      <Input label="New password" type="password" value={newPw} onChange={(event) => setNewPw(event.target.value)} autoComplete="new-password" />
+      <Button
+        variant="light"
+        disabled={loading || !oldPw || !newPw}
+        onClick={() => void run(() => api.changePassword(oldPw, newPw), "Password changed")}
       >
-        <option>USD</option>
-        <option>INR</option>
-      </select>
-
->>>>>>> a26f18097bfee4d553da3f1a17dee27e2f322425
-      <Input label="Choose a name (alias)" value={alias} onChange={(e) => setAlias(e.target.value)} />
-      <Button variant="light" onClick={() => run(() => api.setAlias(alias), "Name saved")}>Save name</Button>
-
-      <Input label="Old password" type="password" value={oldPw} onChange={(e) => setOldPw(e.target.value)} />
-      <Input label="New password" type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} />
-      <Button variant="light" onClick={() => run(() => api.changePassword(oldPw, newPw), "Password changed")}>
         Change password
       </Button>
 
-      {msg && <p className="text-center text-sm text-gray-600">{msg}</p>}
+      {msg && <p role="status" className="text-center text-sm text-gray-600">{msg}</p>}
       <Button variant="danger" onClick={logout}>Log out</Button>
       <BottomNav />
     </div>
