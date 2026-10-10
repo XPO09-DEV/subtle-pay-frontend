@@ -16,7 +16,7 @@ export default function AdminLogin() {
     try {
       const res = await adminApi.login(name, password);
       saveAdminToken(res.token);
-      navigate("/admin");
+      navigate("/");
     } catch (err) {
       setError((err as Error).message);
     } finally {

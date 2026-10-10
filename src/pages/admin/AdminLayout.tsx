@@ -3,23 +3,23 @@ import { adminApi, clearAdminToken, getAdminToken } from "../../api/admin";
 import { Navigate } from "react-router-dom";
 
 const links = [
-  { to: "/admin", label: "Overview", end: true },
-  { to: "/admin/users", label: "Users & Access" },
-  { to: "/admin/merchants", label: "Merchants" },
-  { to: "/admin/autopay", label: "Autopay" },
-  { to: "/admin/audit", label: "Audit Logs" },
-  { to: "/admin/database", label: "Database" },
-  { to: "/admin/health", label: "System Health" },
+  { to: "/", label: "Overview", end: true },
+  { to: "/users", label: "Users & Access" },
+  { to: "/merchants", label: "Merchants" },
+  { to: "/autopay", label: "Autopay" },
+  { to: "/audit", label: "Audit Logs" },
+  { to: "/database", label: "Database" },
+  { to: "/health", label: "System Health" },
 ];
 
 export default function AdminLayout() {
   const navigate = useNavigate();
-  if (!getAdminToken()) return <Navigate to="/admin/login" replace />;
+  if (!getAdminToken()) return <Navigate to="/login" replace />;
 
   async function logout() {
     await adminApi.logout().catch(() => undefined);
     clearAdminToken();
-    navigate("/admin/login");
+    navigate("/login");
   }
 
   return (
