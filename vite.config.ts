@@ -19,6 +19,8 @@ export default defineConfig({
       "/bills": "http://127.0.0.1:4000",
       "/assets": "http://127.0.0.1:4000",
       "/mandates": "http://127.0.0.1:4000",
+      "/merchant": "http://127.0.0.1:4000",
+      "/admin": "http://127.0.0.1:4000",
       "/bridge": "http://127.0.0.1:4000",
       "/health": "http://127.0.0.1:4000",
     },

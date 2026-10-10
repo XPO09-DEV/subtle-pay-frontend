@@ -15,12 +15,17 @@ export default function Settings() {
   const [oldMpin, setOldMpin] = useState("");
   const [newMpin, setNewMpin] = useState("");
   const [hasBiometric, setHasBiometric] = useState(false);
+  const [merchantStatus, setMerchantStatus] = useState("none");
+  const [businessName, setBusinessName] = useState("");
+  const [autopayMerchant, setAutopayMerchant] = useState("");
+  const [autopayCap, setAutopayCap] = useState("");
   const [msg, setMsg] = useState("");
   const { logout } = useAuth();
 
   useEffect(() => {
     api.getMe().then(setMe);
     api.biometricStatus().then((s) => setHasBiometric(s.hasBiometric)).catch(() => {});
+    api.merchantStatus().then((s) => setMerchantStatus(s.status)).catch(() => {});
   }, []);
 
   async function registerBiometric() {
@@ -99,6 +104,47 @@ export default function Settings() {
       <Button variant="light" onClick={registerBiometric} disabled={hasBiometric}>
         {hasBiometric ? "Biometric already set" : "Set Face / Fingerprint"}
       </Button>
+
+      <div className="rounded-xl bg-white p-4 space-y-2">
+        <p className="text-sm font-medium">Business verification (for autopay)</p>
+        <p className="text-xs text-gray-500">Status: {merchantStatus}</p>
+        {merchantStatus !== "verified" && merchantStatus !== "pending" && (
+          <>
+            <Input label="Business name" value={businessName} onChange={(e) => setBusinessName(e.target.value)} />
+            <Button
+              variant="light"
+              onClick={() =>
+                run(() => api.requestMerchantVerification(businessName), "Verification requested")
+              }
+            >
+              Request verification
+            </Button>
+          </>
+        )}
+        {merchantStatus === "pending" && (
+          <p className="text-xs text-amber-700">Waiting for our team to verify your business.</p>
+        )}
+        {merchantStatus === "verified" && (
+          <p className="text-xs text-green-700">Verified — customers can set autopay for you.</p>
+        )}
+      </div>
+
+      <div className="rounded-xl bg-white p-4 space-y-2">
+        <p className="text-sm font-medium">Set autopay (verified merchants only)</p>
+        <Input label="Merchant alias" value={autopayMerchant} onChange={(e) => setAutopayMerchant(e.target.value)} />
+        <Input label="Monthly cap" value={autopayCap} onChange={(e) => setAutopayCap(e.target.value)} />
+        <Button
+          variant="light"
+          onClick={() =>
+            run(
+              () => api.createAutopay(autopayMerchant, autopayCap, me?.currency ?? "USD", 30),
+              "Autopay set"
+            )
+          }
+        >
+          Create autopay
+        </Button>
+      </div>
 
       {!me?.hasMpin && (
         <>

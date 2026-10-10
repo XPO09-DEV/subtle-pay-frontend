@@ -42,7 +42,18 @@ export const api = {
       "POST",
       "/auth/biometric/auth/options"
     ),
-  getMe: () => request<Me & { hasMpin?: boolean }>("GET", "/me"),
+  merchantStatus: () =>
+    request<{ status: string; businessName: string | null; note: string | null }>("GET", "/merchant/status"),
+  requestMerchantVerification: (businessName: string, contact?: string) =>
+    request<{ status: string }>("POST", "/merchant/verify-request", { businessName, contact }),
+  createAutopay: (merchant: string, cap: string, currency: string, intervalDays: number) =>
+    request<{ mandateId: string; status: string }>("POST", "/mandates", {
+      merchant,
+      cap,
+      currency,
+      intervalDays,
+    }),
+  getMe: () => request<Me & { hasMpin?: boolean; merchantStatus?: string }>("GET", "/me"),
   setCurrency: (currency: string) => request<{ currency: string }>("PUT", "/me/currency", { currency }),
   getWallet: () => request<Wallet>("GET", "/wallet"),
   setAlias: (alias: string) => request<{ alias: string }>("POST", "/alias", { alias }),
