@@ -26,16 +26,51 @@ export default function Send() {
     }
   }
 
-  async function pay() {
+  async function payWithMpin() {
     if (!mpin) {
       setError("Enter your MPIN");
       return;
     }
     try {
-      await api.send(to, amount, currency, mpin, note);
+      await api.send(to, amount, currency, { mpin }, note);
       setStep("done");
     } catch (e) {
       setError((e as Error).message);
+    }
+  }
+
+  async function payWithBiometric() {
+    setError("");
+    try {
+      const { challenge, credentials } = await api.biometricAuthOptions();
+      if (!credentials.length) throw new Error("No biometric registered");
+
+      const challengeBuf = Uint8Array.from(atob(challenge.replace(/-/g, "+").replace(/_/g, "/")), (c) => c.charCodeAt(0));
+      const allowCredentials = credentials.map((c) => ({
+        type: "public-key" as const,
+        id: Uint8Array.from(atob(c.id.replace(/-/g, "+").replace(/_/g, "/")), (ch) => ch.charCodeAt(0)),
+      }));
+
+      const assertion = (await navigator.credentials.get({
+        publicKey: {
+          challenge: challengeBuf,
+          allowCredentials,
+          userVerification: "required",
+          timeout: 60000,
+        },
+      })) as PublicKeyCredential | null;
+
+      if (!assertion) throw new Error("Biometric cancelled");
+
+      const response = assertion.response as AuthenticatorAssertionResponse;
+      const signature = btoa(String.fromCharCode(...new Uint8Array(response.signature)));
+
+      await api.send(to, amount, currency, {
+        biometric: { credentialId: assertion.id, challenge, signature },
+      }, note);
+      setStep("done");
+    } catch (e) {
+      setError((e as Error).message || "Biometric failed — use MPIN instead");
     }
   }
 
@@ -67,7 +102,8 @@ export default function Send() {
           maxLength={6}
         />
         {error && <p className="text-sm text-red-600">{error}</p>}
-        <Button onClick={pay}>Confirm payment</Button>
+        <Button onClick={payWithBiometric}>Pay with Face / Fingerprint</Button>
+        <Button onClick={payWithMpin}>Confirm with MPIN</Button>
         <Button variant="light" onClick={() => setStep("form")}>Cancel</Button>
       </div>
     );
