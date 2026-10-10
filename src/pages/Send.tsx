@@ -25,12 +25,14 @@ export default function Send() {
     if (!raw) return setError("Enter a recipient.");
     if (!Number.isFinite(value) || value <= 0) return setError("Enter an amount greater than zero.");
 
-    const recipient = /^0x/i.test(raw)
-      ? raw
-      : raw.replace(/^@/, "").replace(/@monad$/i, "").trim().toLowerCase();
+    const isAddress = /^0x[0-9a-fA-F]{40}$/.test(raw);
+    const handle = raw.replace(/^@/, "").replace(/@monad$/i, "").trim();
+    // The backend issues 27-character account IDs and expects them in uppercase.
+    const isAccountId = /^[a-zA-Z0-9]{27}$/.test(handle);
+    const recipient = isAddress ? raw : isAccountId ? handle.toUpperCase() : handle.toLowerCase();
 
     try {
-      if (!/^0x[0-9a-fA-F]{40}$/.test(recipient)) {
+      if (!isAddress && !isAccountId) {
         await api.resolveAlias(recipient);
       }
       setTo(recipient);
@@ -61,7 +63,7 @@ export default function Send() {
         <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-brand text-4xl text-white">✓</div>
         <h1 className="text-2xl font-semibold">Payment submitted</h1>
         <p className="text-3xl font-bold">{money(amount, currency)}</p>
-        <p>To {to}</p>
+        <p className="break-all">To {to}</p>
         {receipt?.status && <p className="text-sm text-gray-500">Status: {receipt.status}</p>}
         {receipt?.txHash && <p className="break-all text-xs text-gray-400">Transaction: {receipt.txHash}</p>}
         <p className="text-xs text-gray-500">A payment is complete only when the network confirms it.</p>
@@ -90,7 +92,7 @@ export default function Send() {
       <button type="button" onClick={() => navigate(-1)} className="text-brand">← Back</button>
       <h1 className="text-xl font-semibold">Send money</h1>
       <Input label="To (name, account ID or address)" value={to} onChange={(event) => setTo(event.target.value)} autoComplete="off" required />
-      <Input label="Amount" type="number" value={amount} onChange={(event) => setAmount(event.target.value)} required />
+      <Input label="Amount" type="number" min="0" step="any" value={amount} onChange={(event) => setAmount(event.target.value)} required />
       <label className="block space-y-1 text-sm">
         <span className="text-gray-600">Currency</span>
         <select value={currency} onChange={(event) => setCurrency(event.target.value)} className="w-full rounded-xl border bg-white p-3">
