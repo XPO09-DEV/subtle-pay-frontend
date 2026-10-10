@@ -13,25 +13,21 @@ export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  // Prevent empty submission and type the event parameter
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault(); // Prevent form submission
-    if (!accountId || !password) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!accountId.trim() || !password) {
       setError("Please fill in all fields.");
       return;
     }
-    submit();
-  };
 
-  async function submit() {
     setLoading(true);
     setError("");
     try {
-      const { token } = await api.login(accountId, password);
-      login(token);
-      navigate("/");
-    } catch (e) {
-      setError((e as Error).message || "An error occurred during login.");
+      const session = await api.login(accountId.trim(), password);
+      login(session.token, session.refreshToken);
+      navigate("/", { replace: true });
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Unable to log in.");
     } finally {
       setLoading(false);
     }
@@ -41,21 +37,23 @@ export default function Login() {
     <div className="space-y-4 p-6 pt-24">
       <h1 className="text-center text-3xl font-bold text-brand">SUBTLE PAY</h1>
       <p className="pb-4 text-center text-sm text-gray-500">Simple money. Bigger possibilities.</p>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} className="space-y-3">
         <Input
           label="Account ID"
           value={accountId}
-          onChange={(e) => setAccountId(e.target.value)}
+          onChange={(event) => setAccountId(event.target.value)}
+          autoComplete="username"
           required
         />
         <Input
           label="Password"
           type="password"
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={(event) => setPassword(event.target.value)}
+          autoComplete="current-password"
           required
         />
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
         <Button type="submit" disabled={loading}>
           {loading ? "Logging in..." : "Log in"}
         </Button>
