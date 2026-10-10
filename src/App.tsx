@@ -9,18 +9,13 @@ import History from "./pages/History";
 import Settings from "./pages/Settings";
 import Withdraw from "./pages/Withdraw";
 
-// if not logged in, send the person to the login page
 function Private({ children }: { children: React.ReactNode }) {
   return getToken() ? <>{children}</> : <Navigate to="/login" />;
 }
 
 export default function App() {
   return (
-<<<<<<< HEAD
-   <div className="mx-auto min-h-dvh max-w-md bg-[#faf8f4] md:my-6 md:min-h-[calc(100dvh-3rem)] md:overflow-hidden md:rounded-3xl md:shadow-xl">
-=======
-    <div className="mx-auto min-h-screen max-w-md bg-[#faf8f4]">
->>>>>>> a26f18097bfee4d553da3f1a17dee27e2f322425
+    <div className="mx-auto min-h-dvh max-w-md bg-[#faf8f4] md:my-6 md:min-h-[calc(100dvh-3rem)] md:overflow-hidden md:rounded-3xl md:shadow-xl">
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />

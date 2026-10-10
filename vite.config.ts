@@ -2,9 +2,6 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
-<<<<<<< HEAD
-export default defineConfig({ plugins: [react(), tailwindcss()] });
-=======
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
@@ -12,6 +9,7 @@ export default defineConfig({
     proxy: {
       "/auth": "http://127.0.0.1:4000",
       "/me": "http://127.0.0.1:4000",
+      "/home": "http://127.0.0.1:4000",
       "/wallet": "http://127.0.0.1:4000",
       "/alias": "http://127.0.0.1:4000",
       "/rates": "http://127.0.0.1:4000",
@@ -20,8 +18,9 @@ export default defineConfig({
       "/contacts": "http://127.0.0.1:4000",
       "/bills": "http://127.0.0.1:4000",
       "/assets": "http://127.0.0.1:4000",
+      "/mandates": "http://127.0.0.1:4000",
+      "/bridge": "http://127.0.0.1:4000",
       "/health": "http://127.0.0.1:4000",
     },
   },
 });
->>>>>>> a26f18097bfee4d553da3f1a17dee27e2f322425

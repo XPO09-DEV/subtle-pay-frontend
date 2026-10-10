@@ -5,22 +5,20 @@ import type { Me } from "../types/api";
 import BottomNav from "../components/BottomNav";
 import Button from "../components/Button";
 import Input from "../components/Input";
-<<<<<<< HEAD
-import CurrencyPicker from "../components/CurrencyPicker";
-=======
->>>>>>> a26f18097bfee4d553da3f1a17dee27e2f322425
 
 export default function Settings() {
-  const [me, setMe] = useState<Me | null>(null);
+  const [me, setMe] = useState<(Me & { hasMpin?: boolean }) | null>(null);
   const [alias, setAlias] = useState("");
   const [oldPw, setOldPw] = useState("");
   const [newPw, setNewPw] = useState("");
+  const [mpin, setMpin] = useState("");
+  const [oldMpin, setOldMpin] = useState("");
+  const [newMpin, setNewMpin] = useState("");
   const [msg, setMsg] = useState("");
   const { logout } = useAuth();
 
   useEffect(() => { api.getMe().then(setMe); }, []);
 
-  // runs any action and shows success or error text
   async function run(action: () => Promise<unknown>, ok: string) {
     try {
       await action();
@@ -37,18 +35,7 @@ export default function Settings() {
       <div className="break-all rounded-xl bg-white p-4 text-sm">
         <b>@{me?.alias ?? "no name yet"}</b>
         <p className="text-gray-400">{me?.accountId}</p>
-<<<<<<< HEAD
-      <div className="space-y-1">
-        <p className="text-xs text-gray-500">Currency</p>
-        <CurrencyPicker
-         className="w-full"
-         value={me?.currency ?? "USD"}
-         onChange={(c) => run(() => api.setCurrency(c), "Currency updated")}
-       />
-     </div>
-      </div>
-
-=======
+        <p className="text-xs text-gray-500 mt-1">MPIN: {me?.hasMpin ? "set" : "not set"}</p>
       </div>
 
       <select
@@ -60,9 +47,23 @@ export default function Settings() {
         <option>INR</option>
       </select>
 
->>>>>>> a26f18097bfee4d553da3f1a17dee27e2f322425
       <Input label="Choose a name (alias)" value={alias} onChange={(e) => setAlias(e.target.value)} />
       <Button variant="light" onClick={() => run(() => api.setAlias(alias), "Name saved")}>Save name</Button>
+
+      {!me?.hasMpin && (
+        <>
+          <Input label="Set MPIN (4-6 digits)" type="password" inputMode="numeric" value={mpin} onChange={(e) => setMpin(e.target.value)} maxLength={6} />
+          <Button variant="light" onClick={() => run(() => api.setMpin(mpin), "MPIN set")}>Set MPIN</Button>
+        </>
+      )}
+
+      {me?.hasMpin && (
+        <>
+          <Input label="Old MPIN" type="password" value={oldMpin} onChange={(e) => setOldMpin(e.target.value)} />
+          <Input label="New MPIN" type="password" value={newMpin} onChange={(e) => setNewMpin(e.target.value)} />
+          <Button variant="light" onClick={() => run(() => api.changeMpin(oldMpin, newMpin), "MPIN changed")}>Change MPIN</Button>
+        </>
+      )}
 
       <Input label="Old password" type="password" value={oldPw} onChange={(e) => setOldPw(e.target.value)} />
       <Input label="New password" type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} />

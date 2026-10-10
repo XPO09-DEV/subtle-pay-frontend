@@ -11,19 +11,15 @@ export default function Send() {
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState("USD");
   const [note, setNote] = useState("");
+  const [mpin, setMpin] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
   async function goConfirm() {
     setError("");
     try {
-      // check that the name exists (skip if it's a 0x address)
-<<<<<<< HEAD
-      if (!to.startsWith("0x")) await api.resolveAlias(to);
-=======
       const handle = to.trim().toLowerCase().replace(/@monad$/, "").replace(/^@/, "");
       if (!to.startsWith("0x")) await api.resolveAlias(handle);
->>>>>>> a26f18097bfee4d553da3f1a17dee27e2f322425
       setStep("confirm");
     } catch (e) {
       setError((e as Error).message);
@@ -31,8 +27,12 @@ export default function Send() {
   }
 
   async function pay() {
+    if (!mpin) {
+      setError("Enter your MPIN");
+      return;
+    }
     try {
-      await api.send(to, Number(amount), currency, note);
+      await api.send(to, amount, currency, mpin, note);
       setStep("done");
     } catch (e) {
       setError((e as Error).message);
@@ -58,6 +58,14 @@ export default function Send() {
         <p className="text-4xl font-bold">{money(Number(amount), currency)}</p>
         <p>To: <b>{to}</b></p>
         {note && <p>Note: {note}</p>}
+        <Input
+          label="MPIN (4-6 digits)"
+          type="password"
+          inputMode="numeric"
+          value={mpin}
+          onChange={(e) => setMpin(e.target.value)}
+          maxLength={6}
+        />
         {error && <p className="text-sm text-red-600">{error}</p>}
         <Button onClick={pay}>Confirm payment</Button>
         <Button variant="light" onClick={() => setStep("form")}>Cancel</Button>
