@@ -19,9 +19,9 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 }
 
 export const adminApi = {
-  login: (email: string, password: string) =>
+  login: (name: string, password: string) =>
     request<{ token: string; admin: { id: string; email: string; role: string } }>("POST", "/admin/login", {
-      email,
+      email: name,
       password,
     }),
   me: () => request<{ id: string; email: string; role: string }>("GET", "/admin/me"),

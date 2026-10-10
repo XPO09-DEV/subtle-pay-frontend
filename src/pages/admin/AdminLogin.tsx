@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { adminApi, saveAdminToken } from "../../api/admin";
 
 export default function AdminLogin() {
-  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -14,7 +14,7 @@ export default function AdminLogin() {
     setLoading(true);
     setError("");
     try {
-      const res = await adminApi.login(email, password);
+      const res = await adminApi.login(name, password);
       saveAdminToken(res.token);
       navigate("/admin");
     } catch (err) {
@@ -33,12 +33,13 @@ export default function AdminLogin() {
           <p className="mt-1 text-sm text-gray-500">Authorized administrators only.</p>
         </div>
         <label className="block text-sm">
-          <span className="text-gray-600">Email</span>
+          <span className="text-gray-600">Name</span>
           <input
-            type="email"
+            type="text"
             required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="username"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
             className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2 outline-none focus:border-gray-900"
           />
         </label>
