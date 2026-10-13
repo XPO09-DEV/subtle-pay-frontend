@@ -741,9 +741,7 @@ function Chart({ pts, tf, error, hover, onHover, animKey, currency, onRetry }: C
           ) : "Hover for exact price · scroll/pinch to zoom"}
         </span>
         <div className="ta-chart-zoom">
-          <button type="button" aria-label="Zoom out" title="Zoom out" onClick={() => { triggerHaptic(); zoomBy(1.4); }}>−</button>
-          <button type="button" aria-label="Zoom in" title="Zoom in" onClick={() => { triggerHaptic(); zoomBy(0.72); }}>+</button>
-          {isZoomed && <button type="button" onClick={() => { triggerHaptic(); resetZoom(); }}>Reset</button>}
+          {isZoomed && <button type="button" onClick={() => { triggerHaptic(); resetZoom(); }}>Reset view</button>}
         </div>
       </div>
     </>
@@ -770,7 +768,7 @@ export default function TokenAssetsWidget({
   pinned = DEFAULT_PINNED,
   baseUrl = getSubtlePayApiBaseUrl(),
   currency: currencyProp,
-  refreshMs = 120000,
+  refreshMs = 60000,
   defaultTimeframe = "1D",
   visibleHeld: visibleHeldProp,
   visibleTokens,
@@ -1135,7 +1133,7 @@ export default function TokenAssetsWidget({
                     ? updatedAt ? `Offline · updated ${formatElapsed(clockNow - updatedAt)}` : "Price unavailable"
                     : !updatedAt ? "Fetching price…"
                     : stale ? `Delayed · updated ${formatElapsed(clockNow - updatedAt)}`
-                    : `Updated ${formatElapsed(clockNow - updatedAt)}`}
+                    : `Refresh in ${String(Math.floor(Math.max(0, refreshMs - (clockNow - lastMarketLoadAt.current)) / 1000)).padStart(2, "0")}s`}
                 </span>
                 <button
                   type="button"
