@@ -3,6 +3,7 @@ import { getBackendApiBaseUrl } from "./walletService";
 export type MarketPeriod = "24h" | "1w" | "1m" | "3m";
 export type PrimaryCoinId = "tether" | "usd-coin" | "monad";
 export interface MarketQuote {
+  key: PrimaryCoinId;
   id: string;
   name: string;
   symbol: string;
@@ -86,6 +87,7 @@ function makeQuote(row: Record<string, unknown>, requested: PrimaryCoinId): Mark
     : requested === "usd-coin" ? { id: "usd-coin", name: "USD Coin", symbol: "USDC" }
     : { id: "monad", name: "Monad", symbol: "MON" };
   return {
+    key: requested,
     ...canonical,
     id: textAt(row, ["id", "coinId", "slug"], canonical.id),
     name: textAt(row, ["name", "coinName"], canonical.name),
