@@ -278,7 +278,7 @@ export default function App() {
             }}
           />}
           {activePage === "activity" && <Activity />}
-          {activePage === "notifications" && <Notifications />}
+          {activePage === "notifications" && <Notifications accountId={accountProfile.accountId} />}
         </main>
       </div>
       <BottomNav active={activePage} onNavigate={setActivePage} />
