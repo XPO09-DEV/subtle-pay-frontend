@@ -12,7 +12,6 @@ import {
   getMerchantProfile,
   getMpinStatus,
   loginAccount,
-  logoutAccount,
   removeAccountMpin,
   revokeAccountSession,
   setAccountMpin,
