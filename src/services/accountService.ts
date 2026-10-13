@@ -130,7 +130,7 @@ export async function loginAccount(accountId: string, password: string): Promise
 
 export async function getAccountProfile(): Promise<AccountProfile> { return authenticatedRequest<AccountProfile>("/me"); }
 
-export async function updateAccountProfile(input: ProfileUpdate): Promise<Pick<AccountProfile, "displayName" | "region" | "regionConsentAt">> {
+export async function updateAccountProfile(input: ProfileUpdate): Promise<Pick<AccountProfile, "displayName" | "alias" | "region" | "regionConsentAt">> {
   return authenticatedRequest("/me/profile", { method: "PUT", body: JSON.stringify(input) });
 }
 
@@ -175,6 +175,9 @@ export interface PaymentRecord {
   displayCurrency: string;
   status: "pending" | "confirmed" | "failed" | "submitted" | string;
   txHash: string | null;
+  note?: string | null;
+  confirmedAt?: number | null;
+  updatedAt?: number;
   createdAt: string;
 }
 
@@ -184,6 +187,7 @@ export interface SendPaymentInput {
   amountCurrency: "USD" | "INR";
   note?: string;
   asset: "MON";
+  authorizationToken: string;
 }
 
 export interface SendPaymentResult {
@@ -209,11 +213,18 @@ export async function submitAccountPayment(input: SendPaymentInput): Promise<Sen
   });
 }
 
-export async function getPaymentHistory(options: { limit?: number; before?: number; beforeId?: string } = {}): Promise<PaymentRecord[]> {
+export async function getPaymentHistory(options: {
+  limit?: number; before?: number; beforeId?: string; q?: string;
+  status?: "pending" | "submitted" | "confirmed" | "failed";
+  direction?: "in" | "out";
+} = {}): Promise<PaymentRecord[]> {
   const query = new URLSearchParams();
   if (options.limit !== undefined) query.set("limit", String(Math.max(1, Math.min(100, Math.trunc(options.limit)))));
   if (options.before !== undefined) query.set("before", String(options.before));
   if (options.beforeId) query.set("beforeId", options.beforeId);
+  if (options.q?.trim()) query.set("q", options.q.trim());
+  if (options.status) query.set("status", options.status);
+  if (options.direction) query.set("direction", options.direction);
   return authenticatedRequest<PaymentRecord[]>(`/payments${query.size ? `?${query.toString()}` : ""}`);
 }
 
@@ -263,3 +274,57 @@ export async function getSupportedCurrencies(): Promise<string[]> {
 export async function getAccountRates(currency: "USD" | "INR" = "USD"): Promise<{ tokenUsd: number; usdLocal: number; currency: string; updatedAt: string }> {
   return rawRequest<{ tokenUsd: number; usdLocal: number; currency: string; updatedAt: string }>(`/rates?currency=${currency}`, {}, false);
 }
+export interface ActiveAccountSession {
+  sessionId: string; createdAt: number; lastSeenAt: number; expiresAt: number;
+  ip: string | null; userAgent: string | null; current: boolean;
+}
+export async function getAccountSessions(): Promise<ActiveAccountSession[]> {
+  const response = await authenticatedRequest<{ sessions: ActiveAccountSession[] }>("/me/sessions");
+  return response.sessions;
+}
+export async function revokeAccountSession(sessionId: string): Promise<void> {
+  await authenticatedRequest("/me/sessions/" + encodeURIComponent(sessionId), { method: "DELETE" });
+}
+export async function getMpinStatus(): Promise<{ enabled: boolean }> {
+  return authenticatedRequest("/auth/mpin/status");
+}
+export async function setAccountMpin(currentPassword: string, pin: string): Promise<{ enabled: boolean }> {
+  return authenticatedRequest("/auth/mpin", { method: "PUT", body: JSON.stringify({ currentPassword, pin }) });
+}
+export async function removeAccountMpin(currentPassword: string): Promise<{ enabled: boolean }> {
+  return authenticatedRequest("/auth/mpin", { method: "DELETE", body: JSON.stringify({ currentPassword }) });
+}
+export async function authorizePayment(method: "password" | "mpin", secret: string): Promise<{ authorizationToken: string; expiresIn: number }> {
+  return authenticatedRequest("/auth/payment-authorization", { method: "POST", body: JSON.stringify({ method, secret }) });
+}
+export async function changeAccountPassword(oldPassword: string, newPassword: string): Promise<{ ok: boolean }> {
+  return authenticatedRequest("/auth/change-password", { method: "POST", body: JSON.stringify({ oldPassword, newPassword }) });
+}
+export async function deleteAccount(currentPassword: string): Promise<void> {
+  await authenticatedRequest("/me/delete", { method: "POST", body: JSON.stringify({ currentPassword, confirmation: "DELETE" }) });
+  accessToken = null;
+}
+
+export interface MerchantProfile {
+  userId: string; publicName: string; category: string; status: "unverified" | "approved" | "suspended";
+  createdAt: number; updatedAt: number; verifiedAt: number | null;
+}
+export interface MerchantAutopayApplication {
+  id: string; reason: string; status: "pending" | "approved" | "rejected";
+  createdAt: number; reviewedAt: number | null; reviewNote: string | null;
+}
+export async function getMerchantProfile(): Promise<{ enabled: boolean; profile: MerchantProfile | null; verifiedBadge: boolean }> {
+  return authenticatedRequest("/merchant/profile");
+}
+export async function enableMerchantProfile(input: { publicName?: string; category?: string } = {}) {
+  return authenticatedRequest<{ enabled: boolean; profile: MerchantProfile; verifiedBadge: boolean; message: string }>(
+    "/merchant/enable", { method: "POST", body: JSON.stringify(input) }
+  );
+}
+export async function getMerchantAutopayApplications(): Promise<MerchantAutopayApplication[]> {
+  return authenticatedRequest("/merchant/autopay-applications");
+}
+export async function applyForMerchantAutopay(reason: string): Promise<{ id: string; status: "pending"; message: string }> {
+  return authenticatedRequest("/merchant/autopay-applications", { method: "POST", body: JSON.stringify({ reason }) });
+}
+
