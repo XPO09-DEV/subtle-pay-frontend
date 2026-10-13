@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import type { Me, Payment } from "../types/api";
 import BottomNav from "../components/BottomNav";
 import TransactionItem from "../components/TransactionItem";
 
 export default function History() {
+  const navigate = useNavigate();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [me, setMe] = useState<Me | null>(null);
   const [showLocal, setShowLocal] = useState(false);
@@ -39,7 +41,7 @@ export default function History() {
       {payments.map((tx) => (
         <TransactionItem key={tx.id} tx={tx} showLocal={showLocal} currency={me?.currency} />
       ))}
-      <BottomNav />
+      <BottomNav active="wallet" onNavigate={(page) => navigate(page === "wallet" ? "/" : `/${page}`)} />
     </div>
   );
 }
