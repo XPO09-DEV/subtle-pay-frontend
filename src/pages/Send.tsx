@@ -1,6 +1,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import Icon from "../components/Icon";
+import PaymentReceipt from "../components/PaymentReceipt";
 import QRScanner from "../components/QRScanner";
 
 import {
@@ -95,6 +96,7 @@ export default function Send({
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<SendPaymentResult | null>(null);
+  const [receiptIssuedAt, setReceiptIssuedAt] = useState<string | null>(null);
   const [mpinEnabled, setMpinEnabled] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const [authMethod, setAuthMethod] = useState<"password" | "mpin">("password");
@@ -247,6 +249,7 @@ export default function Send({
         authorizationToken: authorization.authorizationToken,
       });
       setResult(payment);
+      setReceiptIssuedAt(new Date().toISOString());
       setNotice(statusCopy(payment.status));
       setAuthOpen(false);
       setAuthSecret("");
@@ -542,62 +545,26 @@ export default function Send({
         </section>
       )}
 
-      {notice && (
+      {notice && !result && (
         <div
-          className={result?.status === "confirmed" ? "inline-notice success" : "inline-notice"}
+          className="inline-notice"
           role="status"
         >
-          <Icon name={result?.status === "confirmed" ? "check-circle" : "info"} size={16} />
+          <Icon name="info" size={16} />
           <span>{notice}</span>
         </div>
       )}
 
-      {result && (
-        <section className="panel">
-          <div className="panel-heading compact">
-            <div>
-              <div className="section-kicker">
-                PAYMENT RESULT
-              </div>
-              <h2>{result.tokenAmount} MON</h2>
-            </div>
-
-            <span
-              className={
-                result.status === "confirmed"
-                  ? "status-pill success"
-                  : result.status === "failed"
-                    ? "status-pill warning"
-                    : "status-pill neutral"
-              }
-            >
-              {result.status}
-            </span>
-          </div>
-
-          <p>
-            Transaction ID: <code>{result.txId}</code>
-          </p>
-
-          <p>
-            Transaction hash:{" "}
-            <code className="receive-full-address">
-              {result.txHash}
-            </code>
-          </p>
-
-          {result.txHash && (
-            <a
-              href={`https://testnet.monadexplorer.com/tx/${encodeURIComponent(
-                result.txHash
-              )}`}
-              target="_blank"
-              rel="noreferrer"
-            >
-              View on Monad Testnet Explorer ↗
-            </a>
-          )}
-        </section>
+      {result && receiptIssuedAt && (
+        <PaymentReceipt
+          result={result}
+          amount={amount}
+          currency={currency}
+          recipient={recipient.trim()}
+          senderAddress={walletAddress}
+          note={note}
+          issuedAt={receiptIssuedAt}
+        />
       )}
     </div>
   );
