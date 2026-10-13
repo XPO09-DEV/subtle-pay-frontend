@@ -88,8 +88,13 @@ export default function App() {
   }, []);
 
   const connectWallet = useCallback(() => {
-    setWalletError("Sign in to use the Subtle Pay account wallet. External wallet transfers are disabled in this testnet payment flow.");
-  }, []);
+    if (accountProfile && !walletAddress) {
+      setWalletStatus("error");
+      setWalletError("Your account is signed in, but no wallet address was returned by the backend. Sign out and sign in again; if this persists, the backend wallet record needs repair.");
+      return;
+    }
+    setWalletError("Subtle Pay uses its backend-managed Monad Testnet wallet. Sign in to your Subtle Pay account to access it; external wallet connection is not enabled in this payment flow.");
+  }, [accountProfile, walletAddress]);
 
   const disconnectWallet = useCallback(async () => {
     await logoutAccount().catch(() => undefined);
