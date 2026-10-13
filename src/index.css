@@ -1382,3 +1382,38 @@ button, input, select { -webkit-tap-highlight-color: transparent; }
   width: min(210px, 70%);
   margin: 0 auto 24px;
 }
+
+
+/* Branded merchant checkout QR and a calm white scanning surface. */
+.merchant-receive-qr .panel-heading p {
+  margin: 6px 0 0;
+  color: #8490a4;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.merchant-pay-qr-wrap {
+  display: grid;
+  place-items: center;
+  width: fit-content;
+  max-width: 100%;
+  margin: 18px auto 8px;
+  padding: 14px;
+  border: 1px solid #e7ebf2;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(20, 37, 67, .06), inset 0 1px 0 #fff;
+}
+.merchant-pay-qr-wrap svg { display: block; max-width: 100%; height: auto; }
+.merchant-pay-qr-loading {
+  display: grid;
+  width: 196px;
+  height: 196px;
+  place-items: center;
+  padding: 16px;
+  color: #8995a8;
+  font-size: 11px;
+  text-align: center;
+}
+@media (max-width: 760px) {
+  .merchant-pay-qr-wrap { padding: 10px; border-radius: 15px; }
+}
