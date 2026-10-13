@@ -41,7 +41,6 @@ function apiUrl(path: string): string {
 
 class ApiError extends Error {
   readonly status: number;
-
   constructor(message: string, status: number) {
     super(message);
     this.name = "ApiError";
@@ -55,11 +54,9 @@ async function parseResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const root = body && typeof body === "object" ? body as Record<string, unknown> : {};
     const error = root.error && typeof root.error === "object" ? root.error as Record<string, unknown> : {};
-    const message = typeof error.message === "string"
-      ? error.message
-      : typeof root.message === "string"
-        ? root.message
-        : `Subtle Pay API request failed (HTTP ${response.status}).`;
+    const message = typeof error.message === "string" ? error.message
+      : typeof root.message === "string" ? root.message
+      : `Subtle Pay API request failed (HTTP ${response.status}).`;
     throw new ApiError(message, response.status);
   }
   return body as T;
@@ -70,15 +67,9 @@ async function rawRequest<T>(path: string, init: RequestInit = {}, withAccessTok
   if (init.body && !headers.has("content-type")) headers.set("content-type", "application/json");
   headers.set("accept", "application/json");
   if (withAccessToken && accessToken) headers.set("authorization", `Bearer ${accessToken}`);
-
   let response: Response;
   try {
-    response = await fetch(apiUrl(path), {
-      ...init,
-      headers,
-      credentials: "include",
-      cache: "no-store",
-    });
+    response = await fetch(apiUrl(path), { ...init, headers, credentials: "include", cache: "no-store" });
   } catch {
     throw new Error("Could not reach the Subtle Pay account service. Start the backend or check VITE_SUBTLEPAY_API_BASE_URL.");
   }
@@ -90,8 +81,7 @@ async function refreshAccessToken(): Promise<string | null> {
   refreshInFlight = (async () => {
     try {
       const result = await rawRequest<AuthReply>("/auth/refresh", {
-        method: "POST",
-        body: JSON.stringify({}),
+        method: "POST", body: JSON.stringify({}),
       }, false);
       accessToken = typeof result.token === "string" ? result.token : null;
       return accessToken;
@@ -119,15 +109,10 @@ async function authenticatedRequest<T>(path: string, init: RequestInit = {}): Pr
   }
 }
 
-export function hasAccountSession(): boolean {
-  return Boolean(accessToken);
-}
+export function hasAccountSession(): boolean { return Boolean(accessToken); }
 
 export async function registerAccount(password: string): Promise<{ accountId: string; walletAddress: string }> {
-  const result = await rawRequest<AuthReply>("/auth/register", {
-    method: "POST",
-    body: JSON.stringify({ password }),
-  }, false);
+  const result = await rawRequest<AuthReply>("/auth/register", { method: "POST", body: JSON.stringify({ password }) }, false);
   if (!result.token || !result.accountId || !result.address) {
     throw new Error("Registration succeeded without the expected account and wallet details.");
   }
@@ -137,22 +122,16 @@ export async function registerAccount(password: string): Promise<{ accountId: st
 
 export async function loginAccount(accountId: string, password: string): Promise<void> {
   const result = await rawRequest<AuthReply>("/auth/login", {
-    method: "POST",
-    body: JSON.stringify({ accountId: accountId.trim(), password }),
+    method: "POST", body: JSON.stringify({ accountId: accountId.trim(), password }),
   }, false);
   if (!result.token) throw new Error("Login response did not include an access token.");
   accessToken = result.token;
 }
 
-export async function getAccountProfile(): Promise<AccountProfile> {
-  return authenticatedRequest<AccountProfile>("/me");
-}
+export async function getAccountProfile(): Promise<AccountProfile> { return authenticatedRequest<AccountProfile>("/me"); }
 
 export async function updateAccountProfile(input: ProfileUpdate): Promise<Pick<AccountProfile, "displayName" | "region" | "regionConsentAt">> {
-  return authenticatedRequest("/me/profile", {
-    method: "PUT",
-    body: JSON.stringify(input),
-  });
+  return authenticatedRequest("/me/profile", { method: "PUT", body: JSON.stringify(input) });
 }
 
 export async function logoutAccount(): Promise<void> {
@@ -160,21 +139,16 @@ export async function logoutAccount(): Promise<void> {
     if (accessToken) await authenticatedRequest<{ ok: boolean }>("/auth/logout", { method: "POST" });
   } finally {
     accessToken = null;
-    // The backend clears its HttpOnly refresh cookie when logout succeeds.
+    // Refresh tokens remain in an HttpOnly cookie controlled by the backend.
   }
 }
 
 export async function restoreAccountSession(): Promise<AccountProfile | null> {
   const nextToken = await refreshAccessToken();
   if (!nextToken) return null;
-  try {
-    return await getAccountProfile();
-  } catch {
-    accessToken = null;
-    return null;
-  }
+  try { return await getAccountProfile(); }
+  catch { accessToken = null; return null; }
 }
-
 
 export interface AccountHome {
   accountId: string;
@@ -220,8 +194,8 @@ export interface SendPaymentResult {
   txHash: string;
 }
 
-export async function getAccountHome(): Promise<AccountHome> {
-  return authenticatedRequest<AccountHome>("/home");
+export async function getAccountHome(forceRefresh = false): Promise<AccountHome> {
+  return authenticatedRequest<AccountHome>(`/home${forceRefresh ? "?refresh=true" : ""}`);
 }
 
 export async function submitAccountPayment(input: SendPaymentInput): Promise<SendPaymentResult> {
@@ -235,8 +209,55 @@ export async function submitAccountPayment(input: SendPaymentInput): Promise<Sen
   });
 }
 
-export async function getPaymentHistory(): Promise<PaymentRecord[]> {
-  return authenticatedRequest<PaymentRecord[]>("/payments");
+export async function getPaymentHistory(options: { limit?: number; before?: number; beforeId?: string } = {}): Promise<PaymentRecord[]> {
+  const query = new URLSearchParams();
+  if (options.limit !== undefined) query.set("limit", String(Math.max(1, Math.min(100, Math.trunc(options.limit)))));
+  if (options.before !== undefined) query.set("before", String(options.before));
+  if (options.beforeId) query.set("beforeId", options.beforeId);
+  return authenticatedRequest<PaymentRecord[]>(`/payments${query.size ? `?${query.toString()}` : ""}`);
+}
+
+export interface BackendContact {
+  name: string;
+  accountId: string | null;
+  address: string | null;
+  createdAt: number;
+}
+
+export async function getContacts(): Promise<BackendContact[]> { return authenticatedRequest<BackendContact[]>("/contacts"); }
+
+export async function saveContact(input: { name: string; recipient: string }): Promise<{ name: string; accountId: string | null; address: string | null }> {
+  const recipient = input.recipient.trim();
+  const body: { name: string; accountId?: string; address?: string; alias?: string } = { name: input.name };
+  if (/^0x[a-fA-F0-9]{40}$/.test(recipient)) body.address = recipient;
+  else if (/^[A-Z0-9]{20,40}$/i.test(recipient)) body.accountId = recipient;
+  else body.alias = recipient.replace(/^@/, "");
+  return authenticatedRequest<{ name: string; accountId: string | null; address: string | null }>("/contacts", { method: "POST", body: JSON.stringify(body) });
+}
+
+export async function deleteContact(name: string): Promise<void> {
+  await authenticatedRequest(`/contacts/${encodeURIComponent(name)}`, { method: "DELETE" });
+}
+
+export interface SignedPayQr { payload: string; chainId: 10143; address: string; alias: string | null; amount: string | null; currency: "USD" | "INR" | null }
+export interface VerifiedPayQr { valid: true; to: string; address: string; chainId: 10143; amount: string | null; currency: "USD" | "INR" | null }
+
+export async function getSignedPayQr(amount?: string, currency: "USD" | "INR" = "USD"): Promise<SignedPayQr> {
+  const query = amount ? `?amount=${encodeURIComponent(amount)}&currency=${currency}` : "";
+  return authenticatedRequest<SignedPayQr>(`/qr/pay${query}`);
+}
+
+export async function verifyPayQr(payload: string): Promise<VerifiedPayQr> {
+  return authenticatedRequest<VerifiedPayQr>("/qr/verify", { method: "POST", body: JSON.stringify({ payload }) });
+}
+
+export async function updateAccountCurrency(currency: string): Promise<{ currency: string }> {
+  return authenticatedRequest<{ currency: string }>("/me/currency", { method: "PUT", body: JSON.stringify({ currency }) });
+}
+
+export async function getSupportedCurrencies(): Promise<string[]> {
+  const result = await rawRequest<{ currencies: Array<{ code: string }> }>("/rates/currencies", {}, false);
+  return result.currencies.map((currency) => currency.code.toUpperCase());
 }
 
 export async function getAccountRates(currency: "USD" | "INR" = "USD"): Promise<{ tokenUsd: number; usdLocal: number; currency: string; updatedAt: string }> {

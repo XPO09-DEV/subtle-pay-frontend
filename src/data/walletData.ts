@@ -1,4 +1,4 @@
-export type TokenSymbol = "ETH" | "BTC" | "SOL" | "MON";
+export type TokenSymbol = "MON";
 
 export type TokenInfo = {
   symbol: TokenSymbol;
@@ -7,10 +7,7 @@ export type TokenInfo = {
 };
 
 export const TOKENS: Record<TokenSymbol, TokenInfo> = {
-  ETH: { symbol: "ETH", name: "Ethereum", color: "#8da9ff" },
-  BTC: { symbol: "BTC", name: "Bitcoin", color: "#f4b35e" },
-  SOL: { symbol: "SOL", name: "Solana", color: "#8bdac3" },
-  MON: { symbol: "MON", name: "Monad", color: "#d1a3ff" },
+  MON: { symbol: "MON", name: "Monad Testnet MON", color: "#d1a3ff" },
 };
 
 export type FiatCurrency = {
