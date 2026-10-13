@@ -1425,15 +1425,15 @@ export default function TokenAssetsWidget({
               className={`ta-row ${a.id === selected?.id ? "is-sel" : ""}`}
               onClick={() => choose(a)}
             >
-              <Logo src={a.image} symbol={a.symbol} badge={badge} loading={status === "loading"} />
+              <Logo src={a.image} symbol={a.symbol} badge={badge} />
               <span className="ta-meta">
                 <b>{a.symbol}</b>
-                <small>{a.price == null ? (status === "loading" ? "Fetching data..." : "Price unavailable") : fmtMoney(a.price, currency, "price")}{a.network ? ` · ${a.network}` : ""}</small>
+                <small>{a.price == null ? "Price unavailable" : fmtMoney(a.price, currency, "price")}{a.network ? ` · ${a.network}` : ""}</small>
                 {a.contractAddress && <small className="ta-contract-address" title={a.contractAddress}>{`${a.contractAddress.slice(0, 7)}…${a.contractAddress.slice(-5)}`}</small>}
               </span>
               <span className="ta-nums">
                 <b>{walletConnected ? fmtAmount(a.amount) : "—"}</b>
-                <small>{!walletConnected ? "Wallet not connected" : !Number.isFinite(a.value) ? (status === "loading" ? "Fetching data..." : "Value unavailable") : fmtMoney(a.value, currency, "value")}</small>
+                <small>{!walletConnected ? "Wallet not connected" : !Number.isFinite(a.value) ? "Value unavailable" : fmtMoney(a.value, currency, "value")}</small>
               </span>
             </button>
           ))}
