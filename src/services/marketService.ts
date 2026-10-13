@@ -7,6 +7,7 @@ export interface MarketQuote {
   id: string;
   name: string;
   symbol: string;
+  image: string | null;
   price: number;
   change24h: number | null;
   marketCap: number | null;
@@ -92,6 +93,7 @@ function makeQuote(row: Record<string, unknown>, requested: PrimaryCoinId): Mark
     id: textAt(row, ["id", "coinId", "slug"], canonical.id),
     name: textAt(row, ["name", "coinName"], canonical.name),
     symbol: textAt(row, ["symbol", "ticker"], canonical.symbol).toUpperCase(),
+    image: textAt(row, ["icon", "image", "thumbnail", "logo", "imageUrl"], "") || null,
     price,
     change24h: numberAt(row, ["priceChange1d", "priceChange24h", "price_change_percentage_24h", "change24h", "change"]),
     marketCap: numberAt(row, ["marketCap", "market_cap", "marketCapUsd"]),
