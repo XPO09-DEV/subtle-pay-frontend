@@ -247,7 +247,7 @@ const MAX_MULTICHAIN_SEARCH_CANDIDATES = 20;
 const MAX_MULTICHAIN_DETAILS_REQUESTS = 8;
 const MAX_MULTICHAIN_SEARCH_RESULTS = 48;
 
-const MARKET_CACHE_TTL = 90_000;
+const MARKET_CACHE_TTL = 60_000;
 const MARKET_PRICE_CACHE = new Map<string, { savedAt: number; data: Record<string, MarketInfo> }>();
 const MARKET_PRICE_INFLIGHT = new Map<string, Promise<Record<string, MarketInfo>>>();
 
