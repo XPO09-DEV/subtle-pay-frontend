@@ -1,52 +1,117 @@
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import Icon from "../components/Icon";
+import {
+  applyForMerchantAutopay,
+  enableMerchantProfile,
+  getMerchantAutopayApplications,
+  getMerchantProfile,
+  type MerchantAutopayApplication,
+  type MerchantProfile,
+} from "../services/accountService";
+
+function formatDate(value: number | null | undefined): string {
+  if (!value) return "Awaiting review";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "Date unavailable" : date.toLocaleString();
+}
 
 export default function Merchant() {
+  const [merchant, setMerchant] = useState<MerchantProfile | null>(null);
+  const [enabled, setEnabled] = useState(false);
   const [businessName, setBusinessName] = useState("");
-  const [businessType, setBusinessType] = useState("small");
-  const [country, setCountry] = useState("IN");
-  const [documentName, setDocumentName] = useState("");
-  const [notice, setNotice] = useState("");
-  const fileRef = useRef<HTMLInputElement>(null);
+  const [businessType, setBusinessType] = useState("individual");
+  const [reason, setReason] = useState("");
+  const [applications, setApplications] = useState<MerchantAutopayApplication[]>([]);
+  const [busy, setBusy] = useState(true);
+  const [actionBusy, setActionBusy] = useState(false);
+  const [notice, setNotice] = useState<{ kind: "success" | "error"; text: string } | null>(null);
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  async function refresh() {
+    setBusy(true);
+    try {
+      const [profile, history] = await Promise.all([getMerchantProfile(), getMerchantAutopayApplications()]);
+      setEnabled(profile.enabled);
+      setMerchant(profile.profile);
+      setBusinessName(profile.profile?.publicName ?? "");
+      setBusinessType(profile.profile?.category ?? "individual");
+      setApplications(history);
+    } catch (cause) {
+      setNotice({ kind: "error", text: cause instanceof Error ? cause.message : "Merchant data could not be loaded." });
+    } finally { setBusy(false); }
+  }
+  useEffect(() => { void refresh(); }, []);
+
+  async function register(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setNotice("Merchant applications are unavailable until verification services are connected. Your details have not been submitted.");
-  };
+    setActionBusy(true); setNotice(null);
+    try {
+      const result = await enableMerchantProfile({ publicName: businessName.trim() || undefined, category: businessType });
+      setEnabled(result.enabled); setMerchant(result.profile);
+      setNotice({ kind: "success", text: result.message });
+    } catch (cause) {
+      setNotice({ kind: "error", text: cause instanceof Error ? cause.message : "Merchant profile could not be enabled." });
+    } finally { setActionBusy(false); }
+  }
+  async function apply(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setActionBusy(true); setNotice(null);
+    try {
+      const result = await applyForMerchantAutopay(reason.trim());
+      setApplications((items) => [{ id: result.id, reason: reason.trim(), status: result.status, createdAt: Date.now(), reviewedAt: null, reviewNote: null }, ...items]);
+      setReason("");
+      setNotice({ kind: "success", text: result.message });
+    } catch (cause) {
+      setNotice({ kind: "error", text: cause instanceof Error ? cause.message : "Autopay application could not be submitted." });
+    } finally { setActionBusy(false); }
+  }
 
   return (
-    <div className="page-stack inner-page">
-      <div className="page-intro"><div><div className="section-kicker">BUSINESS TOOLS</div><h1>Merchant centre</h1><p>Accept payments with a verified merchant profile.</p></div><span className="page-icon-bubble"><Icon name="merchant" size={20} /></span></div>
-      <section className="merchant-status-panel"><div className="merchant-status-icon"><Icon name="building" size={23} /></div><div className="merchant-status-content"><span className="status-pill neutral">Not connected</span><h2>Merchant verification</h2><p>Verification status and merchant-only features will appear here when the merchant service is connected.</p></div></section>
+    <div className="page-stack inner-page merchant-page">
+      <div className="page-intro"><div><div className="section-kicker">BUSINESS TOOLS</div><h1>Merchant centre</h1><p>Use Subtle Pay for a public merchant profile; request separate approval for Autopay.</p></div><span className="page-icon-bubble"><Icon name="merchant" size={20} /></span></div>
+
+      {notice && <div className={notice.kind === "success" ? "inline-notice success" : "inline-notice"} role="status"><Icon name={notice.kind === "success" ? "check-circle" : "info"} size={16} /><span>{notice.text}</span><button type="button" onClick={() => setNotice(null)} aria-label="Dismiss"><Icon name="close" size={14} /></button></div>}
+
+      <section className="merchant-status-panel">
+        <div className="merchant-status-icon"><Icon name="building" size={23} /></div>
+        <div className="merchant-status-content">
+          <span className={merchant?.status === "approved" ? "merchant-verified-badge" : "status-pill neutral"}>{merchant?.status === "approved" ? "✓ Verified merchant" : enabled ? "Merchant enabled" : "Not enabled"}</span>
+          <h2>{merchant?.publicName ?? "Become a Subtle Pay merchant"}</h2>
+          <p>{merchant?.status === "approved" ? "Your merchant profile has been approved by the Subtle Pay team." : "Anyone can enable a merchant profile. A verified badge is shown only after staff approval; Autopay remains a separate approval."}</p>
+        </div>
+      </section>
 
       <section className="panel">
-        <div className="panel-heading"><div><div className="section-kicker">APPLICATION</div><h2>Business details</h2></div><span className="step-number">01</span></div>
-        <form className="form-stack" onSubmit={handleSubmit}>
-          <label className="field-label" htmlFor="business-name">Registered business name</label>
-          <input id="business-name" className="text-input" value={businessName} onChange={(event) => setBusinessName(event.target.value)} placeholder="Legal business name" required />
-          <div className="two-column-fields">
-            <div><label className="field-label" htmlFor="business-size">Business size</label><select id="business-size" className="form-select" value={businessType} onChange={(event) => setBusinessType(event.target.value)}><option value="small">Small business</option><option value="large">Large business</option></select></div>
-            <div><label className="field-label" htmlFor="business-country">Country / region</label><select id="business-country" className="form-select" value={country} onChange={(event) => setCountry(event.target.value)}><option value="IN">India</option><option value="US">United States</option><option value="GB">United Kingdom</option><option value="SG">Singapore</option><option value="AE">United Arab Emirates</option><option value="OTHER">Other</option></select></div>
-          </div>
-          <div className="upload-document-box"><span className="upload-document-icon"><Icon name="file" size={20} /></span><div><strong>Legal document</strong><small>{documentName || "Choose a document"}</small></div><button type="button" className="secondary-button" onClick={() => fileRef.current?.click()}><Icon name="upload" size={15} /> Browse</button><input ref={fileRef} type="file" className="sr-only" accept=".pdf,.png,.jpg,.jpeg" onChange={(event) => setDocumentName(event.target.files?.[0]?.name ?? "")} /></div>
-          <p className="tiny-note">Choosing a file does not upload it. Secure document submission and country-specific checks require the merchant service.</p>
-          <button className="primary-button wide-button" type="submit"><Icon name="document" size={17} /> Submit application</button>
+        <div className="panel-heading compact"><div><div className="section-kicker">PUBLIC PROFILE</div><h2>{enabled ? "Update merchant details" : "Enable merchant profile"}</h2></div><span className="step-number">01</span></div>
+        {busy ? <div className="history-loading"><span className="ta-search-spinner" /><strong>Loading merchant status…</strong></div> :
+          <form className="form-stack" onSubmit={(event) => void register(event)}>
+            <label className="field-label" htmlFor="merchant-public-name">Public name</label>
+            <input id="merchant-public-name" className="form-input" value={businessName} onChange={(event) => setBusinessName(event.target.value)} maxLength={80} placeholder="Your name or shop name" />
+            <label className="field-label" htmlFor="merchant-category">Merchant category</label>
+            <select id="merchant-category" className="form-select" value={businessType} onChange={(event) => setBusinessType(event.target.value)}>
+              <option value="individual">Individual / creator</option><option value="retail">Retail</option><option value="services">Services</option><option value="online">Online business</option><option value="other">Other</option>
+            </select>
+            <p className="tiny-note">You can enable a basic merchant profile without uploading identity documents in this prototype. This does not grant the yellow verified badge or activate Autopay.</p>
+            <button className="primary-button wide-button" type="submit" disabled={actionBusy}>{actionBusy ? "Saving…" : enabled ? "Save merchant profile" : "Enable merchant profile"}</button>
+          </form>}
+      </section>
+
+      <section className="panel">
+        <div className="panel-heading compact"><div><div className="section-kicker">RECURRING PAYMENTS</div><h2>Apply for Autopay</h2></div><span className="feature-access-icon"><Icon name="refresh" size={18} /></span></div>
+        <p className="body-copy">Autopay applications are reviewed separately. Payments are not scheduled or executed just because an application was submitted.</p>
+        <form className="form-stack" onSubmit={(event) => void apply(event)}>
+          <label className="field-label" htmlFor="merchant-autopay-reason">Use case</label>
+          <textarea id="merchant-autopay-reason" className="form-input merchant-reason" value={reason} onChange={(event) => setReason(event.target.value)} minLength={10} maxLength={1000} rows={4} required placeholder="Explain why your merchant account needs recurring payments." />
+          <button className="secondary-button wide-button" type="submit" disabled={!enabled || actionBusy}>{actionBusy ? "Submitting…" : "Submit Autopay application"}</button>
         </form>
-        {notice && <div className="inline-notice"><Icon name="info" size={16} /><span>{notice}</span><button type="button" onClick={() => setNotice("")} aria-label="Dismiss notice"><Icon name="close" size={15} /></button></div>}
+        {applications.length > 0 && <div className="merchant-applications">
+          <h3>Your applications</h3>
+          {applications.map((application) => <article key={application.id}>
+            <div><strong>{application.status === "pending" ? "Pending review" : application.status === "approved" ? "Approved" : "Rejected"}</strong><small>{formatDate(application.createdAt)}</small><p>{application.reason}</p>{application.reviewNote && <small>Review note: {application.reviewNote}</small>}</div>
+            <span className={application.status === "approved" ? "status-pill success" : application.status === "rejected" ? "status-pill warning" : "status-pill neutral"}>{application.status}</span>
+          </article>)}
+        </div>}
       </section>
-
-      <section className="panel">
-        <div className="panel-heading compact"><div><div className="section-kicker">MERCHANT PRIVILEGES</div><h2>Feature access</h2></div><Icon name="shield" size={22} className="panel-heading-icon" /></div>
-        <div className="feature-access-row"><span className="feature-access-icon"><Icon name="credit-card" size={18} /></span><div><strong>Merchant checkout</strong><small>Available after approval</small></div><span className="status-pill neutral">Unavailable</span></div>
-        <div className="feature-access-row"><span className="feature-access-icon"><Icon name="check-circle" size={18} /></span><div><strong>Verified merchant badge</strong><small>Shown only after approval</small></div><span className="status-pill neutral">Unavailable</span></div>
-      </section>
-
-      <section className="panel autopay-panel">
-        <div className="panel-heading compact"><div><div className="section-kicker">RECURRING PAYMENTS</div><h2>Autopay mandates</h2></div><span className="feature-access-icon"><Icon name="refresh" size={18} /></span></div>
-        <p className="body-copy">Autopay requires separate merchant approval, clear monthly pricing and explicit mandate permissions.</p>
-        <div className="autopay-meta"><span>Monthly fee</span><strong>To be confirmed</strong></div>
-        <button type="button" className="secondary-button wide-button" onClick={() => setNotice("Merchant support contact is not configured yet.")}>Contact Subtle Pay <Icon name="arrow-right" size={16} /></button>
-      </section>
+      <p className="history-disclaimer">The verified badge is a review status, not a claim that all payment or regulatory checks have been completed.</p>
     </div>
   );
 }
