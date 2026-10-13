@@ -243,7 +243,7 @@ export default function Notifications({ accountId }: { accountId: string }) {
 
   function markAllRead() {
     const next = new Set(readIds);
-    visibleItems.forEach((item) => next.add(item.id));
+    items.forEach((item) => next.add(item.id));
     persistReadIds(next);
   }
 
