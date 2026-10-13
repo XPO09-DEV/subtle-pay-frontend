@@ -38,7 +38,8 @@ export default function Register() {
 
   if (accountId) {
     return (
-      <div className="space-y-4 p-6 pt-24 text-center">
+      <div className="space-y-4 p-6 pt-16 text-center">
+        <img className="mx-auto block w-48 max-w-full h-auto" src="/subtle-pay-logo.svg" alt="Subtle Pay" />
         <h1 className="text-2xl font-semibold">Your Subtle Pay ID</h1>
         <p className="text-sm text-gray-500">Keep it safe and do not share it with anyone.</p>
         <div className="break-all rounded-xl bg-soft p-4 font-mono">{accountId}</div>
@@ -52,7 +53,8 @@ export default function Register() {
   }
 
   return (
-    <div className="space-y-4 p-6 pt-16">
+    <div className="space-y-4 p-6 pt-12">
+      <img className="mx-auto block w-48 max-w-full h-auto" src="/subtle-pay-logo.svg" alt="Subtle Pay" />
       <h1 className="text-2xl font-semibold">Create your Subtle Pay account</h1>
       <Input label="Password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" required />
       <Input label="Confirm password" type="password" value={confirm} onChange={(event) => setConfirm(event.target.value)} autoComplete="new-password" required />
