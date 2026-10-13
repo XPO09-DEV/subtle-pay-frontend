@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { useAuth } from "../hooks/useAuth";
 import type { Me } from "../types/api";
@@ -8,6 +9,7 @@ import Input from "../components/Input";
 import CurrencyPicker from "../components/CurrencyPicker";
 
 export default function Settings() {
+  const navigate = useNavigate();
   const [me, setMe] = useState<Me | null>(null);
   const [alias, setAlias] = useState("");
   const [oldPw, setOldPw] = useState("");
@@ -70,7 +72,7 @@ export default function Settings() {
 
       {msg && <p role="status" className="text-center text-sm text-gray-600">{msg}</p>}
       <Button variant="danger" onClick={logout}>Log out</Button>
-      <BottomNav />
+      <BottomNav active="wallet" onNavigate={(page) => navigate(page === "wallet" ? "/" : `/${page}`)} />
     </div>
   );
 }
