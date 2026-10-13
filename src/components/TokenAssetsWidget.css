@@ -526,3 +526,61 @@
   .ta-search-page .ta-search-network-badge { max-width: 72px; }
   .ta-search-preview-title strong { overflow-wrap: anywhere; }
 }
+
+
+/* Final narrow-screen constraints for the full-screen asset search. */
+.ta-search-page-backdrop {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  max-width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  min-width: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+.ta-search-page {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  height: 100%;
+  min-height: 0;
+  max-height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.ta-search-page > * {
+  box-sizing: border-box;
+  width: min(100%, 860px);
+  min-width: 0;
+  max-width: 100%;
+}
+.ta-search-page .ta-search-result {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+.ta-search-page .ta-search-result-copy { min-width: 0; overflow: hidden; }
+.ta-search-page .ta-search-network-badge { flex: 0 1 auto; min-width: 0; max-width: 32%; overflow: hidden; text-overflow: ellipsis; }
+.ta-search-preview { box-sizing: border-box; width: 100%; min-width: 0; max-width: 100%; overflow: hidden; }
+.ta-search-preview .ta-chart { width: 100%; min-width: 0; max-width: 100%; }
+@media (max-width: 560px) {
+  .ta-search-page { padding: max(8px, env(safe-area-inset-top)) 12px calc(16px + env(safe-area-inset-bottom)); }
+  .ta-search-page-header { width: 100%; min-width: 0; }
+  .ta-search-page-field { width: 100%; min-width: 0; }
+  .ta-search-page-helper { align-items: flex-start; flex-direction: column; gap: 5px; }
+  .ta-search-page-helper > small { max-width: 100%; text-align: left; overflow-wrap: anywhere; }
+  .ta-search-page .ta-search-filters { width: 100%; max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; }
+  .ta-search-page .ta-search-result { gap: 8px; padding-right: 3px !important; padding-left: 3px !important; }
+  .ta-search-page .ta-search-network-badge { max-width: 29%; font-size: 8px; }
+  .ta-search-page-footer { overflow-wrap: anywhere; }
+}
+@media (max-width: 380px) {
+  .ta-search-page { padding-right: 9px; padding-left: 9px; }
+  .ta-search-page-title strong { font-size: 16px; }
+  .ta-search-page .ta-search-network-badge { max-width: 27%; padding: 5px 6px; }
+}
