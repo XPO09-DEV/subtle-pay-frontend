@@ -221,7 +221,7 @@ export default function App() {
         <div className="sidebar-footer">Subtle Pay <span>Wallet</span></div>
       </aside>
       <div className="workspace">
-        <header className="app-header"><button type="button" className="mobile-menu-button" aria-label="Open navigation" aria-expanded={showMobileMenu} aria-controls="mobile-more-menu" onClick={() => setShowMobileMenu((open) => !open)}>
+        <header className="app-header"><span className="mobile-header-brand"><img className="brand-logo-mark" src="/subtle-pay-mark.svg" alt="" /><span><strong>Subtle Pay</strong></span></span><button type="button" className="mobile-menu-button" aria-label="Open navigation" aria-expanded={showMobileMenu} aria-controls="mobile-more-menu" onClick={() => setShowMobileMenu((open) => !open)}>
           <svg aria-hidden="true" viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M3.5 6.5h17M3.5 12h17M3.5 17.5h17" /></svg>
         </button></header>
         {showMobileMenu && <div className="mobile-menu-backdrop" onClick={() => setShowMobileMenu(false)}><nav id="mobile-more-menu" className="mobile-menu-panel" aria-label="Navigation menu" onClick={(event) => event.stopPropagation()}>
