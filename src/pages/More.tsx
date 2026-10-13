@@ -107,7 +107,7 @@ export default function More({
       const next = await getAccountProfile();
       setDisplayName(next.displayName ?? ""); setRegion(next.region ?? ""); setShareRegion(Boolean(next.regionConsentAt));
       onProfileUpdated?.(next);
-      report("success", next.alias ? \`Profile saved. Your permanent handle is \${next.alias}@monad.\` : "Profile saved.");
+      report("success", next.alias ? `Profile saved. Your permanent handle is ${next.alias}@monad.` : "Profile saved.");
     } catch (cause) { report("error", cause instanceof Error ? cause.message : "Profile could not be saved."); }
     finally { setBusy(""); }
   }
@@ -222,7 +222,7 @@ export default function More({
     finally { setBusy(""); }
   }
 
-  const handle = profile?.alias ? \`\${profile.alias}@monad\` : "Not assigned yet";
+  const handle = profile?.alias ? `${profile.alias}@monad` : "Not assigned yet";
   return (
     <div className="page-stack inner-page more-page">
       <div className="page-intro"><div><div className="section-kicker">YOUR ACCOUNT</div><h1>More</h1><p>Profile, account access, security and preferences.</p></div><span className="page-icon-bubble"><Icon name="settings" size={20} /></span></div>
