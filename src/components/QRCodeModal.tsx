@@ -39,7 +39,7 @@ export default function QRCodeModal({ handle, address, onClose }: Props) {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
           </button>
         </div>
-        <div className="qr-sheet">{payload ? <QRCodeSVG value={payload} size={220} fgColor="#101a33" level="Q" /> : <p role="status">Loading secure QR…</p>}</div>
+        <div className="qr-sheet">{payload ? <QRCodeSVG value={payload} size={220} fgColor="#101a33" level="H" imageSettings={{ src: "/subtle-pay-mark.svg", width: 38, height: 38, excavate: true }} /> : <p role="status">Loading secure QR…</p>}</div>
         <p className="receive-full-address">{address}</p>
         <div className="button-row">
           <button type="button" className="secondary-button" onClick={() => void copy()}>{copied ? "Copied" : "Copy address"}</button>
