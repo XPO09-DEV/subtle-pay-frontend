@@ -30,13 +30,13 @@ function thinHistory(points: MarketHistory["points"], max = 140): MarketHistory[
 
 function smoothLine(points: ChartCoordinate[]): string {
   if (points.length < 2) return "";
-  let path = `M\${points[0][0].toFixed(1)} \${points[0][1].toFixed(1)}`;
+  let path = `M${points[0][0].toFixed(1)} ${points[0][1].toFixed(1)}`;
   for (let index = 0; index < points.length - 1; index++) {
     const p0 = points[index - 1] ?? points[index];
     const p1 = points[index];
     const p2 = points[index + 1];
     const p3 = points[index + 2] ?? p2;
-    path += ` C\${(p1[0] + (p2[0] - p0[0]) / 6).toFixed(1)} \${(p1[1] + (p2[1] - p0[1]) / 6).toFixed(1)},\${(p2[0] - (p3[0] - p1[0]) / 6).toFixed(1)} \${(p2[1] - (p3[1] - p1[1]) / 6).toFixed(1)},\${p2[0].toFixed(1)} \${p2[1].toFixed(1)}`;
+    path += ` C${(p1[0] + (p2[0] - p0[0]) / 6).toFixed(1)} ${(p1[1] + (p2[1] - p0[1]) / 6).toFixed(1)},${(p2[0] - (p3[0] - p1[0]) / 6).toFixed(1)} ${(p2[1] - (p3[1] - p1[1]) / 6).toFixed(1)},${p2[0].toFixed(1)} ${p2[1].toFixed(1)}`;
   }
   return path;
 }
@@ -95,7 +95,7 @@ function PriceLine({ history, period }: { history: MarketHistory; period: Market
     return {
       coordinates,
       line,
-      area: `\${line} L\${last[0].toFixed(1)} \${CHART_HEIGHT} L0 \${CHART_HEIGHT} Z`,
+      area: `${line} L${last[0].toFixed(1)} ${CHART_HEIGHT} L0 ${CHART_HEIGHT} Z`,
       last,
     };
   }, [points, width]);
@@ -157,9 +157,9 @@ function PriceLine({ history, period }: { history: MarketHistory; period: Market
         onPointerCancel={() => setHover(null)}
       >
         {geometry && (
-          <svg width={width} height={CHART_HEIGHT} viewBox={`0 0 \${width} \${CHART_HEIGHT}`} role="img" aria-label={`Historical price chart with \${history.points.length} real market data points`}>
+          <svg width={width} height={CHART_HEIGHT} viewBox={`0 0 ${width} ${CHART_HEIGHT}`} role="img" aria-label={`Historical price chart with ${history.points.length} real market data points`}>
             <defs>
-              <linearGradient id={`g\${gradientId}`} x1="0" y1="0" x2="0" y2="1">
+              <linearGradient id={`g${gradientId}`} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0" stopColor="#4285F4" stopOpacity=".24" />
                 <stop offset="1" stopColor="#4285F4" stopOpacity="0" />
               </linearGradient>
@@ -167,8 +167,8 @@ function PriceLine({ history, period }: { history: MarketHistory; period: Market
             {[0.25, 0.5, 0.75].map((fraction) => (
               <line key={fraction} x1="0" x2={width} y1={CHART_HEIGHT * fraction} y2={CHART_HEIGHT * fraction} className="ta-grid" />
             ))}
-            <g key={`\${period}-\${points[0].time}-\${points[points.length - 1].time}`}>
-              <path d={geometry.area} fill={`url(#g\${gradientId})`} className="ta-area" />
+            <g key={`${period}-${points[0].time}-${points[points.length - 1].time}`}>
+              <path d={geometry.area} fill={`url(#g${gradientId})`} className="ta-area" />
               <path d={geometry.line} fill="none" stroke="#4285F4" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" pathLength={1} className="ta-line" />
             </g>
             {selectedCoordinate && hover != null ? (
