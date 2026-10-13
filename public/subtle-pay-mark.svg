@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-labelledby="title">
+  <title id="title">Subtle Pay mark</title>
+  <path fill="#2875F0" d="M20 43 62 12C71 5 79 5 88 10l64 37c20 12 31 27 31 49v37c-2-15-10-26-25-35L20 43Z"/>
+  <path fill="#4A515D" d="M7 65c2 26 15 45 38 58l97 54c8 5 17 4 25-2l17-12c4-3 3-6-1-8L66 96C43 84 31 67 27 47Z"/>
+  <path fill="#2875F0" d="M100 91c4 13 9 18 22 22-13 4-18 9-22 22-4-13-9-18-22-22 13-4 18-9 22-22Z"/>
+</svg>
