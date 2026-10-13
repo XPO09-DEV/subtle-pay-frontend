@@ -1147,3 +1147,11 @@ button, input, select { -webkit-tap-highlight-color: transparent; }
   .history-summary-grid strong { font-size:18px; }
   .history-transaction-title { flex-direction:column; gap:5px; }
 }
+
+.more-login-list { display:flex; flex-direction:column; gap:0; }
+.more-login-list > article { display:flex; min-width:0; align-items:flex-start; gap:10px; padding:12px 0; border-top:1px solid #eef1f6; }
+.more-login-icon { display:grid; width:34px; height:34px; flex:0 0 34px; place-items:center; border:1px solid #dcefe7; border-radius:10px; background:#f2faf6; color:#2a8b68; }
+.more-login-icon.failed { border-color:#f0dada; background:#fff6f6; color:#b44d54; }
+.more-login-list > article > div { display:flex; min-width:0; flex:1; flex-direction:column; gap:4px; }
+.more-login-list strong { color:#46536c; font-size:10px; font-weight:800; }
+.more-login-list small { color:#939daf; font-size:9px; line-height:1.45; overflow-wrap:anywhere; }
