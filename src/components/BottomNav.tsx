@@ -1,10 +1,11 @@
 import Icon, { type IconName } from "./Icon";
 
-export type PageId = "wallet" | "activity" | "notifications" | "send" | "receive" | "merchant" | "more";
+export type PageId = "wallet" | "activity" | "contacts" | "notifications" | "send" | "receive" | "merchant" | "more";
 
 const items: { id: PageId; label: string; icon: IconName }[] = [
   { id: "wallet", label: "Wallet", icon: "wallet" },
   { id: "activity", label: "Activity", icon: "activity" },
+  { id: "contacts", label: "Contacts", icon: "users" },
   { id: "notifications", label: "Alerts", icon: "bell" },
   { id: "more", label: "More", icon: "more" },
 ];
