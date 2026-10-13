@@ -67,6 +67,7 @@ export default function More({
   const [switchPassword, setSwitchPassword] = useState("");
   const [switchingId, setSwitchingId] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
+  const [mpinPassword, setMpinPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [pin, setPin] = useState("");
@@ -157,8 +158,8 @@ export default function More({
     if (pin.length !== 6) { report("error", "MPIN must contain exactly six digits."); return; }
     setBusy("mpin"); setNotice(null);
     try {
-      await setAccountMpin(currentPassword, pin);
-      setMpinEnabled(true); setCurrentPassword(""); setPin("");
+      await setAccountMpin(mpinPassword, pin);
+      setMpinEnabled(true); setMpinPassword(""); setPin("");
       report("success", "MPIN enabled. You can use it to authorize payments.");
     } catch (cause) { report("error", cause instanceof Error ? cause.message : "MPIN could not be saved."); }
     finally { setBusy(""); }
@@ -166,8 +167,8 @@ export default function More({
   async function disableMpin() {
     setBusy("mpin"); setNotice(null);
     try {
-      await removeAccountMpin(currentPassword);
-      setMpinEnabled(false); setCurrentPassword(""); setPin("");
+      await removeAccountMpin(mpinPassword);
+      setMpinEnabled(false); setMpinPassword(""); setPin("");
       report("success", "MPIN disabled. Payment authorization will require your account password.");
     } catch (cause) { report("error", cause instanceof Error ? cause.message : "MPIN could not be disabled."); }
     finally { setBusy(""); }
@@ -292,7 +293,7 @@ export default function More({
         <div className="more-mpin-heading"><div><h3>Payment MPIN</h3><p>{mpinEnabled ? "Enabled for payment authorization." : "Not configured yet."}</p></div><span className={mpinEnabled ? "status-pill success" : "status-pill neutral"}>{mpinEnabled ? "Enabled" : "Not set"}</span></div>
         <form className="more-form" onSubmit={(event) => void saveMpin(event)}>
           <label className="field-label" htmlFor="more-mpin-password">Confirm account password</label>
-          <input id="more-mpin-password" className="form-input" type="password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} autoComplete="current-password" required />
+          <input id="more-mpin-password" className="form-input" type="password" value={mpinPassword} onChange={(event) => setMpinPassword(event.target.value)} autoComplete="current-password" required />
           <label className="field-label" htmlFor="more-mpin">Six-digit MPIN</label>
           <input id="more-mpin" className="form-input" type="password" inputMode="numeric" pattern="[0-9]{6}" maxLength={6} value={pin} onChange={(event) => setPin(event.target.value.replace(/\D/g, "").slice(0, 6))} autoComplete="new-password" placeholder="••••••" required />
           <div className="more-inline-actions"><button type="submit" className="primary-button" disabled={Boolean(busy) || pin.length !== 6}>{mpinEnabled ? "Change MPIN" : "Set MPIN"}</button>{mpinEnabled && <button type="button" className="secondary-button" onClick={() => void disableMpin()} disabled={Boolean(busy)}>Disable MPIN</button>}</div>
