@@ -106,7 +106,7 @@ export default function Activity() {
       </section>
       {error && <div className="inline-notice" role="alert"><Icon name="info" size={16} /><span>{error}</span><button type="button" onClick={() => void refresh()} className="history-retry">Retry</button></div>}
       <section className="panel history-results-panel" aria-label="Transaction results">
-        <div className="panel-heading compact history-results-heading"><div><div className="section-kicker">YOUR ACCOUNT</div><h2>{busy ? "Loading transactions…" : total === 1 ? "1 transaction" : \`\${total} transactions\`}</h2></div><span className="history-network-tag"><span /> Monad Testnet</span></div>
+        <div className="panel-heading compact history-results-heading"><div><div className="section-kicker">YOUR ACCOUNT</div><h2>{busy ? "Loading transactions…" : total === 1 ? "1 transaction" : `${total} transactions`}</h2></div><span className="history-network-tag"><span /> Monad Testnet</span></div>
         {busy ? (
           <div className="history-loading"><span className="ta-search-spinner" /><strong>Fetching your transaction records</strong><small>Searching only payments associated with this account.</small></div>
         ) : !error && payments.length === 0 ? (
@@ -123,11 +123,11 @@ export default function Activity() {
                     <p>{outgoing ? "To " : "From "}<b>{payment.counterparty || "External wallet"}</b></p>
                     {payment.note && <small className="history-transaction-note">{payment.note}</small>}
                     <small className="history-transaction-time">{formatTime(payment.createdAt)} · ID {short(payment.id, 8, 5)}</small>
-                    {payment.txHash && <a className="history-explorer-link" href={\`https://testnet.monadexplorer.com/tx/\${encodeURIComponent(payment.txHash)}\`} target="_blank" rel="noreferrer"><Icon name="external-link" size={13} /> View on explorer <code>{short(payment.txHash, 10, 8)}</code></a>}
+                    {payment.txHash && <a className="history-explorer-link" href={`https://testnet.monadexplorer.com/tx/${encodeURIComponent(payment.txHash)}`} target="_blank" rel="noreferrer"><Icon name="external-link" size={13} /> View on explorer <code>{short(payment.txHash, 10, 8)}</code></a>}
                   </div>
                   <div className="history-transaction-value">
                     <strong>{outgoing ? "−" : "+"}{payment.localValue} {payment.displayCurrency}</strong>
-                    <small>≈ \${payment.usdValue} USD reference</small>
+                    <small>≈ ${payment.usdValue} USD reference</small>
                   </div>
                 </article>
               );
