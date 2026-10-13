@@ -170,6 +170,10 @@ export interface PaymentRecord {
   id: string;
   direction: "in" | "out";
   counterparty: string;
+  counterpartyAddress?: string | null;
+  counterpartyAlias?: string | null;
+  counterpartyIsMerchant?: boolean;
+  counterpartyMerchantName?: string | null;
   usdValue: string;
   localValue: string;
   displayCurrency: string;
@@ -235,6 +239,7 @@ export interface BackendContact {
   name: string;
   accountId: string | null;
   address: string | null;
+  alias?: string | null;
   createdAt: number;
 }
 
