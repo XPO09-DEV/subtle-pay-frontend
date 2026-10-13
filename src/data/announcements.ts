@@ -17,7 +17,7 @@ export const productAnnouncements: ProductAnnouncement[] = [
     id: "notification-centre-launch-2026-10-14",
     title: "Your Notification Centre is ready",
     message: "Payment updates and important Subtle Pay announcements now have one place. New feature releases can be published here as the wallet grows.",
-    publishedAt: "2026-10-14T00:00:00.000Z",
+    publishedAt: "2026-10-13T23:00:00.000Z",
     category: "product",
     tag: "What's new",
   },
