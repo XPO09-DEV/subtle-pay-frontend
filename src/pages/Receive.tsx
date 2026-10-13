@@ -29,7 +29,7 @@ export default function Receive({ walletAddress = null, displayName = "" }: {
   }
   async function shareAddress() {
     if (!walletAddress) { setNotice("Account wallet address is not available. Sign in again."); return; }
-    const text = `Subtle Pay · Monad Testnet\nAccount: ${displayName || "Subtle Pay"}\nAddress: ${walletAddress}\nOnly send testnet MON for this hackathon demo.`;
+    const text = `Subtle Pay · Monad Testnet\nAccount: ${displayName || "Subtle Pay"}\nAddress: ${walletAddress}\nOnly send native testnet MON to this address.`;
     try {
       if (navigator.share) await navigator.share({ title: "Subtle Pay testnet receiving address", text });
       else { await copyText(text); setNotice("Sharing is unavailable; receiving details copied instead."); }
@@ -41,7 +41,7 @@ export default function Receive({ walletAddress = null, displayName = "" }: {
   return <div className="page-stack inner-page receive-page">
     <div className="page-intro"><div><div className="section-kicker">INCOMING TESTNET PAYMENTS</div><h1>Receive money</h1><p>Your Subtle Pay account has a backend-managed Monad Testnet wallet.</p></div><span className="page-icon-bubble"><Icon name="receive" size={20} /></span></div>
     {!walletAddress ? <section className="panel"><h2>Account wallet unavailable</h2><p>Sign in again to load your account wallet address.</p></section> : <>
-      <section className="receive-hero-panel"><div className="receive-hero-copy"><span className="section-kicker light">YOUR SUBTLE PAY WALLET</span><h2>Ready to <span>receive</span></h2><p>Share this address and tell the sender to use Monad Testnet (chain ID 10143).</p></div><div className="receive-qr-box receive-network-icon">{payQr ? <QRCodeSVG value={payQr} size={176} level="Q" includeMargin /> : <Icon name="qr" size={42} />}<span>MONAD TESTNET</span></div></section>
+      <section className="receive-hero-panel"><div className="receive-hero-copy"><span className="section-kicker light">YOUR SUBTLE PAY WALLET</span><h2>Ready to <span>receive</span></h2><p>Share this address and tell the sender to use Monad Testnet (chain ID 10143).</p></div><div className="receive-qr-box receive-network-icon">{payQr ? <QRCodeSVG value={payQr} size={176} level="H" includeMargin imageSettings={{ src: "/subtle-pay-mark.svg", width: 32, height: 32, excavate: true }} /> : <Icon name="qr" size={42} />}<span>MONAD TESTNET</span></div></section>
       <section className="panel address-panel">
         <div className="panel-heading compact"><div><div className="section-kicker">RECEIVING NETWORK</div><h2>Monad Testnet</h2></div><span className="status-pill neutral">Chain 10143</span></div>
         <div className="receive-address-label"><span>ACCOUNT WALLET ADDRESS</span><button type="button" onClick={() => void copyAddress()}><Icon name="copy" size={14} /> Copy</button></div>
