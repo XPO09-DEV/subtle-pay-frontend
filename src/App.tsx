@@ -5,6 +5,7 @@ import BottomNav, { type PageId } from "./components/BottomNav";
 import Icon from "./components/Icon";
 import WalletCard from "./components/WalletCard";
 import Activity from "./pages/Activity";
+import Contacts from "./pages/Contacts";
 import Dashboard from "./pages/Dashboard";
 import Merchant from "./pages/Merchant";
 import More from "./pages/More";
@@ -49,7 +50,7 @@ function readRestorablePage(): PageId {
   if (!hasResumeConsent()) return "wallet";
   try {
     const page = window.localStorage.getItem("subtlePayLastPage") as PageId | null;
-    return page && ["wallet", "activity", "notifications", "send", "receive", "merchant", "more"].includes(page) ? page : "wallet";
+    return page && ["wallet", "activity", "contacts", "notifications", "send", "receive", "merchant", "more"].includes(page) ? page : "wallet";
   } catch { return "wallet"; }
 }
 
@@ -221,7 +222,7 @@ export default function App() {
         <nav className="sidebar-nav" aria-label="Main navigation">
           {[
             { id: "wallet", label: "Wallet", icon: "wallet" }, { id: "activity", label: "Activity", icon: "activity" },
-            { id: "notifications", label: "Notifications", icon: "bell" }, { id: "send", label: "Send money", icon: "send" },
+            { id: "contacts", label: "Contacts", icon: "users" }, { id: "notifications", label: "Notifications", icon: "bell" }, { id: "send", label: "Send money", icon: "send" },
             { id: "receive", label: "Receive money", icon: "receive" }, { id: "merchant", label: "Merchant centre", icon: "merchant" },
             { id: "more", label: "Settings", icon: "settings" },
           ].map((item) => <button className={activePage === item.id ? "sidebar-link active" : "sidebar-link"} key={item.id} onClick={() => setActivePage(item.id as PageId)} type="button" aria-current={activePage === item.id ? "page" : undefined}>
@@ -241,7 +242,7 @@ export default function App() {
           <div className="mobile-menu-heading">Navigate</div>
           {[
             { id: "wallet", label: "Wallet", icon: "wallet" }, { id: "activity", label: "Activity", icon: "activity" },
-            { id: "notifications", label: "Notifications", icon: "bell" }, { id: "send", label: "Send money", icon: "send" },
+            { id: "contacts", label: "Contacts", icon: "users" }, { id: "notifications", label: "Notifications", icon: "bell" }, { id: "send", label: "Send money", icon: "send" },
             { id: "receive", label: "Receive money", icon: "receive" }, { id: "merchant", label: "Merchant centre", icon: "merchant" },
             { id: "more", label: "Settings", icon: "settings" },
           ].map((item) => <button className={activePage === item.id ? "mobile-menu-item active" : "mobile-menu-item"} key={item.id} type="button" onClick={() => { setActivePage(item.id as PageId); setShowMobileMenu(false); }}>
@@ -278,6 +279,10 @@ export default function App() {
             }}
           />}
           {activePage === "activity" && <Activity />}
+          {activePage === "contacts" && <Contacts
+            onSendToContact={(recipient) => { setPrefilledRecipient(recipient); setActivePage("send"); }}
+            onOpenMerchantCentre={() => setActivePage("merchant")}
+          />}
           {activePage === "notifications" && <Notifications accountId={accountProfile.accountId} />}
         </main>
       </div>
