@@ -298,7 +298,7 @@ export default function MarketPulse({ onQuotesChange }: { onQuotesChange?: (quot
           );
         })}
       </div>
-      {quotesError && <div className="market-inline-error" role="status"><Icon name="info" size={16}/><span>{quotesError} Make sure COINSTATS_API_KEY is configured in the backend .env file.</span></div>}
+      {quotesError && <div className="market-inline-error" role="status"><Icon name="info" size={16}/><span>{quotesError} Check the server’s market-data configuration and try again.</span></div>}
       <div className="market-detail-toolbar">
         <div><strong>{selected?.name ?? COINS.find((coin) => coin.key === activeCoin)?.name}</strong><span>{selected ? selected.symbol + " · USD market reference" : "Live quote pending"}</span></div>
         <div className="market-periods" role="group" aria-label="Price history period">
