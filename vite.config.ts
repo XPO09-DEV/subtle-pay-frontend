@@ -6,5 +6,7 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
+    // Allow Cloudflare Quick Tunnel hosts when sharing this dev server temporarily.
+    allowedHosts: [".trycloudflare.com"],
   },
 });
