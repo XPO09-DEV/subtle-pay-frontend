@@ -1,36 +1,65 @@
 import type { WalletAsset } from "../services/walletService";
+import type { MarketQuote, PrimaryCoinId } from "../services/marketService";
 
-/**
- * Safe replacement for the old browser-side multichain/market-indexed widget.
- * It only renders native MON supplied by the authenticated backend wallet view.
- */
 export interface TokenAssetsWidgetProps {
-  holdings?: Array<Partial<WalletAsset> & { amount?: number; symbol?: string; name?: string; valueUsd?: number | null; network?: string }>;
+  holdings?: WalletAsset[];
   walletConnected?: boolean;
-  pinned?: unknown[];
-  apiKey?: string;
-  baseUrl?: string;
-  keyHeader?: string;
-  currency?: string;
-  refreshMs?: number;
-  defaultTimeframe?: string;
-  visibleHeld?: number;
-  visibleTokens?: number;
-  badge?: string | null;
+  marketQuotes?: MarketQuote[];
   className?: string;
-  onSelect?: (asset: unknown) => void;
-  onConnectWallet?: () => void;
 }
 
-export default function TokenAssetsWidget({ holdings = [], walletConnected = false, className = "" }: TokenAssetsWidgetProps) {
-  const nativeMon = holdings.filter((item) => item.symbol?.toUpperCase() === "MON" && !item.contractAddress && (item.network ?? item.chainLabel ?? "").toLowerCase().includes("monad testnet"));
+const TOKEN_ROWS: { key: PrimaryCoinId; symbol: string; name: string; description: string }[] = [
+  { key: "tether", symbol: "USDT", name: "Tether", description: "Market quote · wallet transfer not enabled" },
+  { key: "usd-coin", symbol: "USDC", name: "USD Coin", description: "Market quote · wallet transfer not enabled" },
+  { key: "monad", symbol: "MON", name: "Monad", description: "Native Monad Testnet balance" },
+];
+const fmtAmount = (amount: number) => amount.toLocaleString(undefined, { maximumFractionDigits: 8 });
+const fmtPrice = (amount: number) => new Intl.NumberFormat("en-US", {
+  style: "currency", currency: "USD", maximumFractionDigits: amount < 1 ? 6 : amount < 100 ? 4 : 2,
+}).format(amount);
+
+export default function TokenAssetsWidget({ holdings = [], walletConnected = false, marketQuotes = [], className = "" }: TokenAssetsWidgetProps) {
+  const nativeMon = holdings.filter((item) => item.tokenSymbol?.toUpperCase() === "MON"
+    && !item.contractAddress
+    && item.chainLabel.toLowerCase().includes("monad testnet"));
+  const monBalance = nativeMon.reduce((total, asset) => total + (Number(asset.balance) || 0), 0);
+
   return (
-    <section className={`panel ${className}`.trim()} aria-label="Monad Testnet assets">
-      <div className="panel-heading compact"><div><div className="section-kicker">TESTNET ASSETS</div><h2>Monad Testnet</h2></div><span className="status-pill neutral">10143</span></div>
-      {!walletConnected ? <p>Sign in to load the backend-managed Subtle Pay wallet.</p> : nativeMon.length === 0 ? <p>No native MON balance was returned by the backend yet. Refresh your account wallet to check again.</p> : nativeMon.map((asset, index) => (
-        <div className="testnet-asset-row" key={asset.id ?? `mon-${index}`}><span><strong>{asset.name ?? "Monad Testnet MON"}</strong><small>Native testnet coin · no mainnet assets</small></span><span><strong>{(asset.amount ?? asset.balance ?? 0).toLocaleString(undefined, { maximumFractionDigits: 8 })} MON</strong>{asset.valueUsd != null && <small>≈ ${asset.valueUsd.toFixed(2)}</small>}</span></div>
-      ))}
-      <p className="account-testnet-note">Only native MON on Monad Testnet can be used for Subtle Pay payments. This component does not call external market APIs, browser wallets, or chain RPCs.</p>
+    <section className={`panel token-assets-panel ${className}`.trim()} aria-label="Token assets">
+      <div className="panel-heading compact token-assets-heading">
+        <div><div className="section-kicker">PORTFOLIO</div><h2>Token assets</h2><p>Live market quotes · refreshed every 60 seconds</p></div>
+      </div>
+      <div className="token-asset-list">
+        {TOKEN_ROWS.map((token) => {
+          const quote = marketQuotes.find((item) => item.key === token.key);
+          const isNativeMon = token.key === "monad";
+          return (
+            <article className="token-asset-row" key={token.key}>
+              <span className="token-asset-logo" aria-hidden="true">
+                <span className="token-asset-logo-fallback">{token.symbol.slice(0, 1)}</span>
+                {quote?.image && <img src={quote.image} alt="" loading="lazy" onError={(event) => { event.currentTarget.style.display = "none"; }} />}
+              </span>
+              <span className="token-asset-copy">
+                <strong>{token.symbol}<span>{token.name}</span></strong>
+                <small>{isNativeMon ? token.description : quote ? token.description : "Market quote unavailable"}</small>
+                {quote && <small className={quote.change24h == null ? "token-asset-change neutral" : quote.change24h >= 0 ? "token-asset-change up" : "token-asset-change down"}>
+                  {quote.change24h == null ? "24h change unavailable" : `${quote.change24h >= 0 ? "+" : ""}${quote.change24h.toFixed(2)}% · 24h`}
+                </small>}
+              </span>
+              <span className="token-asset-value">
+                {isNativeMon ? <>
+                  <strong>{walletConnected ? fmtAmount(monBalance) + " MON" : "—"}</strong>
+                  <small>{walletConnected ? "Account balance" : "Sign in to load balance"}</small>
+                  {quote && <small className="token-asset-market-reference">Market ref. {fmtPrice(quote.price)}</small>}
+                </> : <>
+                  <strong>{quote ? fmtPrice(quote.price) : "—"}</strong>
+                  <small>Market price</small>
+                </>}
+              </span>
+            </article>
+          );
+        })}
+      </div>
     </section>
   );
 }
