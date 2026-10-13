@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { PageId } from "../components/BottomNav";
 import Icon from "../components/Icon";
 import WalletCard from "../components/WalletCard";
+import MarketPulse from "../components/MarketPulse";
 import type { WalletAsset, WalletStatus } from "../services/walletService";
 import { getContacts, saveContact as saveBackendContact, type BackendContact } from "../services/accountService";
 
@@ -128,6 +129,8 @@ export default function Dashboard({
           : filteredContacts.length === 0 ? <div className="contacts-empty compact"><strong>No matching contacts</strong><span>Try another name, handle, account ID or address.</span></div>
           : <div className="contacts-list">{filteredContacts.map((contact) => <article className="contact-row" key={contact.id}><span className="avatar-initials contact-avatar">{contact.name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "•"}</span><span className="recipient-copy contact-copy"><strong>{contact.name}</strong><small>{contact.recipient}</small></span><button className="contact-send-button" type="button" onClick={() => { triggerDashboardHaptic(); onSendToContact(contact.recipient); }} aria-label={`Send to ${contact.name}`}><Icon name="send" size={15} /><span>Send</span></button></article>)}</div>}
       </section></div>}
+
+      <MarketPulse />
 
       <section className="panel testnet-assets-note"><div className="panel-heading compact"><div><div className="section-kicker">NETWORK</div><h2>Monad Testnet only</h2></div><span className="status-pill neutral">10143</span></div><p>Balances and payments come from your Subtle Pay backend account. Only native testnet MON is spendable in this hackathon build; mainnet and other-chain transfers are disabled.</p></section>
       <div className="mobile-nav-spacer" />
