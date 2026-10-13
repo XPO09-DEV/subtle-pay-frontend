@@ -2,9 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { PageId } from "../components/BottomNav";
 import Icon from "../components/Icon";
 import WalletCard from "../components/WalletCard";
-import MarketPulse from "../components/MarketPulse";
 import TokenAssetsWidget from "../components/TokenAssetsWidget";
-import type { MarketQuote } from "../services/marketService";
 import type { WalletAsset, WalletStatus } from "../services/walletService";
 import { getContacts, saveContact as saveBackendContact, type BackendContact } from "../services/accountService";
 
@@ -36,7 +34,6 @@ export default function Dashboard({
   onConnectWallet: () => void; onCopyAddress: () => void; onRefreshWallet: () => void; onDisconnectWallet: () => void;
 }) {
   const [contacts, setContacts] = useState<SavedContact[]>([]);
-  const [marketQuotes, setMarketQuotes] = useState<MarketQuote[]>([]);
   const [showNameEditor, setShowNameEditor] = useState(false);
   const [nameInput, setNameInput] = useState(displayName);
   const [showContacts, setShowContacts] = useState(false);
@@ -132,8 +129,7 @@ export default function Dashboard({
           : <div className="contacts-list">{filteredContacts.map((contact) => <article className="contact-row" key={contact.id}><span className="avatar-initials contact-avatar">{contact.name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "•"}</span><span className="recipient-copy contact-copy"><strong>{contact.name}</strong><small>{contact.recipient}</small></span><button className="contact-send-button" type="button" onClick={() => { triggerDashboardHaptic(); onSendToContact(contact.recipient); }} aria-label={`Send to ${contact.name}`}><Icon name="send" size={15} /><span>Send</span></button></article>)}</div>}
       </section></div>}
 
-      <MarketPulse onQuotesChange={setMarketQuotes} />
-      <TokenAssetsWidget holdings={walletAssets} walletConnected={walletStatus === "ready"} marketQuotes={marketQuotes} />
+      <TokenAssetsWidget holdings={walletAssets} walletConnected={walletStatus === "ready"} />
 
       <div className="mobile-nav-spacer" />
     </div>
