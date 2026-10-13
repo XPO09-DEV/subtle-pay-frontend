@@ -79,7 +79,7 @@ export default function WalletCard({
               <Icon name={busy ? "refresh" : "wallet"} size={14} /> {busy ? "Connecting…" : "Connect wallet"}
             </button>
           )}
-          {walletError && walletAddress && <span className="wallet-inline-error" title={walletError}>{walletError}</span>}
+          {walletError && <span className="wallet-inline-error" role="alert" title={walletError}>{walletError}</span>}
         </div>
         <div className="wallet-market-value">
           <span className="eyebrow light">MARKET VALUE</span>

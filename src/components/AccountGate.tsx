@@ -30,7 +30,8 @@ export default function AccountGate({ onAuthenticated }: { onAuthenticated: (pro
         const profile = await getAccountProfile();
         setCreatedId(result.accountId);
         setCreatedAddress(result.walletAddress);
-        setCreatedProfile(profile);
+        // Registration returns the wallet address directly. Preserve it if a stale or mismatched /me response omits it.
+        setCreatedProfile({ ...profile, walletAddress: profile.walletAddress || result.walletAddress });
       } else {
         await loginAccount(accountId, password);
         const profile = await getAccountProfile();
