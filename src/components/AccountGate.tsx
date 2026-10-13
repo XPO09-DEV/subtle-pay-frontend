@@ -56,7 +56,7 @@ export default function AccountGate({ onAuthenticated }: { onAuthenticated: (pro
     return (
       <main className="account-gate">
         <section className="account-gate-card account-created-card">
-          
+          <div className="account-gate-brand"><span className="account-gate-wordmark">Subtle Pay</span></div>
           <span className="account-gate-eyebrow">ACCOUNT CREATED</span>
           <h1>You're ready to start.</h1>
           <p className="account-gate-muted">Save this account ID. You'll need it with your password whenever you sign in. It cannot be recovered by email in this version.</p>
@@ -73,7 +73,7 @@ export default function AccountGate({ onAuthenticated }: { onAuthenticated: (pro
   return (
     <main className="account-gate">
       <section className="account-gate-card">
-        
+        <div className="account-gate-brand"><span className="account-gate-wordmark">Subtle Pay</span></div>
         <span className="account-gate-eyebrow">MONAD TESTNET · HACKATHON</span>
         <h1>{mode === "register" ? "Create your account" : "Welcome back"}</h1>
         <p className="account-gate-muted">{mode === "register" ? "Create a Subtle Pay account and a dedicated testnet wallet. Your password is never shown again." : "Sign in with the account ID you saved when registering."}</p>
