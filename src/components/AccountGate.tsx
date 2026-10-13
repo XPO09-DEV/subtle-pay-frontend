@@ -56,10 +56,10 @@ export default function AccountGate({ onAuthenticated }: { onAuthenticated: (pro
     return (
       <main className="account-gate">
         <section className="account-gate-card account-created-card">
-          <div className="account-gate-brand"><span className="account-gate-mark">S</span><span>Subtle Pay</span></div>
+          <div className="account-gate-brand"><img className="account-gate-logo" src="/subtle-pay-logo.svg" alt="Subtle Pay" /></div>
           <span className="account-gate-eyebrow">ACCOUNT CREATED</span>
           <h1>You're ready to start.</h1>
-          <p className="account-gate-muted">Save this account ID. You'll need it with your password whenever you sign in. It cannot be recovered by email in this hackathon build.</p>
+          <p className="account-gate-muted">Save this account ID. You'll need it with your password whenever you sign in. It cannot be recovered by email in this version.</p>
           <div className="account-id-box"><code>{createdId}</code><button type="button" onClick={() => void copyAccountId()}>{copied ? "Copied" : "Copy ID"}</button></div>
           <div className="account-wallet-box"><span>Monad Testnet receiving address</span><code>{createdAddress}</code></div>
           <div className="account-testnet-note">Hackathon mode · Testnet MON only · Test tokens have no cash value.</div>
@@ -73,7 +73,7 @@ export default function AccountGate({ onAuthenticated }: { onAuthenticated: (pro
   return (
     <main className="account-gate">
       <section className="account-gate-card">
-        <div className="account-gate-brand"><span className="account-gate-mark">S</span><span>Subtle Pay</span></div>
+        <div className="account-gate-brand"><img className="account-gate-logo" src="/subtle-pay-logo.svg" alt="Subtle Pay" /></div>
         <span className="account-gate-eyebrow">MONAD TESTNET · HACKATHON</span>
         <h1>{mode === "register" ? "Create your account" : "Welcome back"}</h1>
         <p className="account-gate-muted">{mode === "register" ? "Create a Subtle Pay account and a dedicated testnet wallet. Your password is never shown again." : "Sign in with the account ID you saved when registering."}</p>
@@ -88,7 +88,7 @@ export default function AccountGate({ onAuthenticated }: { onAuthenticated: (pro
           {error && <p className="account-gate-error" role="alert">{error}</p>}
           <button className="account-gate-primary" type="submit" disabled={busy}>{busy ? "Please wait…" : mode === "register" ? "Create account" : "Sign in"}</button>
         </form>
-        <p className="account-gate-disclaimer">No mainnet transactions. Only testnet assets are intended for this demo.</p>
+        <p className="account-gate-disclaimer">No mainnet transactions. Only testnet assets are available in this version.</p>
       </section>
     </main>
   );
