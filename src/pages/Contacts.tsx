@@ -68,9 +68,13 @@ function mergeContacts(saved: BackendContact[], payments: PaymentRecord[]): Cont
       || (!address && rawCounterparty ? rawCounterparty.replace(/^@/, "") : null);
     const key = contactKey(address, alias, null, rawCounterparty || payment.id);
     let row = rows.get(key);
-    if (!row && address) {
-      // A saved account ID can point at the same known wallet address.
-      row = Array.from(rows.values()).find((candidate) => candidate.address?.toLowerCase() === address.toLowerCase());
+    if (!row && (address || alias)) {
+      // Merge a saved private label with payment history only when the address
+      // or the counterparty's public handle matches an observed transaction.
+      row = Array.from(rows.values()).find((candidate) =>
+        Boolean(address && candidate.address?.toLowerCase() === address.toLowerCase())
+        || Boolean(alias && candidate.alias?.replace(/^@/, "").toLowerCase() === alias.toLowerCase())
+      );
     }
     if (!row) {
       row = {
