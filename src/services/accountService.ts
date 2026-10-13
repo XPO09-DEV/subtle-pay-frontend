@@ -235,8 +235,27 @@ export async function submitAccountPayment(input: SendPaymentInput): Promise<Sen
   });
 }
 
-export async function getPaymentHistory(): Promise<PaymentRecord[]> {
-  return authenticatedRequest<PaymentRecord[]>("/payments");
+export interface PaymentHistoryPage {
+  items: PaymentRecord[];
+  limit: number;
+  offset: number;
+  total: number;
+  nextOffset: number | null;
+}
+
+export async function getPaymentHistory(options: {
+  limit?: number;
+  offset?: number;
+  status?: "pending" | "submitted" | "confirmed" | "failed";
+  direction?: "in" | "out";
+} = {}): Promise<PaymentHistoryPage> {
+  const params = new URLSearchParams({
+    limit: String(options.limit ?? 50),
+    offset: String(options.offset ?? 0),
+  });
+  if (options.status) params.set("status", options.status);
+  if (options.direction) params.set("direction", options.direction);
+  return authenticatedRequest<PaymentHistoryPage>(`/payments?${params.toString()}`);
 }
 
 export interface SavedContact {

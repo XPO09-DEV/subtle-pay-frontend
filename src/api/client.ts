@@ -15,6 +15,8 @@ type SessionResponse = {
   address?: string;
 };
 
+type PaymentPage = { items: Payment[]; limit: number; offset: number; total: number; nextOffset: number | null };
+
 type ApiFailure = {
   message?: string;
   error?: { message?: string };
@@ -149,7 +151,7 @@ export const api = {
       { to, amount, amountCurrency, note },
       { "idempotency-key": crypto.randomUUID() },
     ),
-  getPayments: () => request<Payment[]>("GET", "/payments"),
+  getPayments: async () => (await request<PaymentPage>("GET", "/payments?limit=50&offset=0")).items,
   withdraw: (amount: number, currency: string) =>
     request<WithdrawResult>("POST", "/withdraw", { amount, currency }),
 };
