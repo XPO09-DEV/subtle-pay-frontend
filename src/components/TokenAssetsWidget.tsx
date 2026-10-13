@@ -189,15 +189,6 @@ async function getJSON<T>(url: string, headers: Record<string, string>, signal?:
   return r.json() as Promise<T>;
 }
 
-interface RawMarket {
-  id: string;
-  symbol: string;
-  name: string;
-  image?: string;
-  current_price: number | null;
-  price_change_percentage_24h?: number | null;
-  price_change_percentage_24h_in_currency?: number | null;
-}
 interface MarketInfo {
   symbol: string;
   name: string;
