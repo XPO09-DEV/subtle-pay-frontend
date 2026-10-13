@@ -234,13 +234,16 @@ export default function Send({
     setAuthError("");
     setNotice("");
     try {
-      const authorization = await authorizePayment(authMethod, authSecret);
-      const payment = await submitAccountPayment({
+      const intent = {
         to: recipient.trim(),
         amount,
         amountCurrency: currency,
         note: note.trim() || undefined,
-        asset: "MON",
+        asset: "MON" as const,
+      };
+      const authorization = await authorizePayment(authMethod, authSecret, intent);
+      const payment = await submitAccountPayment({
+        ...intent,
         authorizationToken: authorization.authorizationToken,
       });
       setResult(payment);
