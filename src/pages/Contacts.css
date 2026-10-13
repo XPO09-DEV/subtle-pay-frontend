@@ -496,3 +496,11 @@
   .contacts-load-more { align-items: flex-start; flex-direction: column; }
   .contacts-load-more button { width: 100%; }
 }
+
+/* Keep the five-item primary navigation balanced on mobile. */
+@media (max-width: 760px) {
+  .bottom-nav { grid-template-columns: repeat(5, minmax(0, 1fr)) !important; }
+  .bottom-nav-track { grid-template-columns: repeat(5, minmax(0, 1fr)) !important; }
+  .bottom-nav-item { padding-right: 2px !important; padding-left: 2px !important; }
+  .bottom-nav-label { font-size: 8px !important; letter-spacing: -.01em; }
+}
