@@ -56,7 +56,7 @@ function statusDetails(status: string) {
       heading: "Payment failed",
       detail: "The transfer was marked as failed. Check Activity before attempting it again.",
       className: "failed",
-      icon: "x-circle" as const,
+      icon: "alert" as const,
     };
   }
   return {
@@ -64,12 +64,8 @@ function statusDetails(status: string) {
     heading: "Payment submitted",
     detail: "The transaction has been submitted. Its on-chain status may still be updating.",
     className: "pending",
-    icon: "clock-3" as const,
+    icon: "clock" as const,
   };
-}
-
-function ReceiptValue({ children }: { children: React.ReactNode }) {
-  return <span className="payment-receipt-value">{children}</span>;
 }
 
 export default function PaymentReceipt({
@@ -137,7 +133,7 @@ export default function PaymentReceipt({
           </span>
         )}
         <div className="payment-receipt-issued">
-          <Icon name="calendar-clock" size={15} />
+          <Icon name="clock" size={15} />
           <span>Receipt issued {formatDate(issuedAt)}</span>
         </div>
       </div>
@@ -222,7 +218,7 @@ export default function PaymentReceipt({
         </p>
         <div className="payment-receipt-actions">
           <button type="button" className="payment-receipt-print" onClick={() => window.print()}>
-            <Icon name="printer" size={16} />
+            <Icon name="document" size={16} />
             Print / Save PDF
           </button>
           {explorerUrl && (
