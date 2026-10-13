@@ -7,6 +7,8 @@ import {
   getAccountRates,
   submitAccountPayment,
   type SendPaymentResult,
+
+  verifyPayQr,
 } from "../services/accountService";
 
 import {
@@ -146,49 +148,27 @@ export default function Send({
   }, [currency]);
 
   // Handle a recipient scanned from a payment QR code.
-  function handleScan(scanned: ScannedRecipient) {
+  async function handleScan(scanned: ScannedRecipient) {
     setScanOpen(false);
-
-    const scannedAddress =
-      scanned.address && isValidEvmAddress(scanned.address)
-        ? scanned.address
-        : "";
-
-    const value = scannedAddress || scanned.to;
-
-    if (!value || !value.trim()) {
-      setScanNotice(
-        "This QR code does not contain a usable recipient. Enter the recipient manually."
-      );
+    if (scanned.payload) {
+      try {
+        const verified = await verifyPayQr(scanned.payload);
+        if (!verified.valid || verified.chainId !== 10143 || !isValidEvmAddress(verified.address)) throw new Error("QR verification failed.");
+        setRecipient(verified.address);
+        if (verified.amount) { setAmount(verified.amount); if (verified.currency === "USD" || verified.currency === "INR") setCurrency(verified.currency); }
+        setResult(null); setNotice("");
+        setScanNotice(`Verified Subtle Pay QR for Monad Testnet${verified.amount ? ` · ${verified.amount} ${verified.currency ?? "USD"}` : ""}. Review the recipient and amount before sending.`);
+      } catch (error) { setScanNotice(error instanceof Error ? error.message : "This payment QR could not be verified by the backend."); }
       return;
     }
-
-    setRecipient(value.trim());
-    setResult(null);
-    setNotice("");
-
+    const scannedAddress = scanned.address && isValidEvmAddress(scanned.address) ? scanned.address : "";
+    const value = scannedAddress || scanned.to;
+    if (!value || !value.trim()) { setScanNotice("This QR code does not contain a usable recipient. Enter the recipient manually."); return; }
+    setRecipient(value.trim()); setResult(null); setNotice("");
     const scannedChainId = normalizeChainId(scanned.chainId);
-    const selectedChain = normalizeChainId(walletChainId);
-
-    if (
-      scannedChainId &&
-      selectedChain &&
-      scannedChainId !== selectedChain
-    ) {
-      setScanNotice(
-        `Network mismatch: this QR is for ${getChainLabel(
-         String(scanned.chainId)
-        )}, but your wallet is on ${getChainLabel(
-          walletChainId!
-        )}. Verify the recipient and network before paying.`
-      );
-    } else {
-      setScanNotice(
-        "Recipient filled from QR. Verify the details before continuing."
-      );
-    }
+    if (scannedChainId && scannedChainId !== "10143") setScanNotice("This QR is not for Monad Testnet (chain ID 10143). It cannot be used for a Subtle Pay payment.");
+    else setScanNotice("Recipient filled from QR. Verify the details before continuing.");
   }
-
   const amountNumber = Number(amount);
 
   const validAmount =

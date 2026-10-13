@@ -33,17 +33,9 @@ export const CURRENCIES: CurrencyOption[] = [
   { code: "chf", name: "Swiss Franc", symbol: "CHF" },
 ];
 
+/** Preferences now come from the backend profile; this fallback is display-only. */
 export const DEFAULT_CURRENCY_KEY = "subtlePayDefaultCurrency";
-
-export function readDefaultCurrency(): string {
-  try {
-    const saved = window.localStorage.getItem(DEFAULT_CURRENCY_KEY)?.toLowerCase();
-    if (saved && CURRENCIES.some((currency) => currency.code === saved)) return saved;
-  } catch {
-    // Storage may be unavailable in restricted browser contexts.
-  }
-  return "usd";
-}
+export function readDefaultCurrency(): string { return "usd"; }
 
 export function getCurrencySymbol(code: string): string {
   return CURRENCIES.find((currency) => currency.code === code.toLowerCase())?.symbol ?? code.toUpperCase();
