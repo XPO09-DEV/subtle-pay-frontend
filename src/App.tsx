@@ -196,8 +196,15 @@ export default function App() {
   if (showOpening) return <div className="startup-screen"><div className="startup-canvas"><WalletCard selectedToken={selectedToken} onTokenChange={setSelectedToken} isOpening /></div></div>;
   if (accountLoading) return <main className="account-gate"><section className="account-gate-card"><div className="account-gate-brand"><span className="account-gate-wordmark">Subtle Pay</span></div><p className="account-gate-muted">Restoring your secure account session…</p></section></main>;
   if (!accountProfile) return <AccountGate onAuthenticated={(profile) => {
-    setAccountProfile(profile); setDisplayName(profile.displayName ?? ""); setWalletAddress(profile.walletAddress);
-    setWalletChainId("0x279f"); setWalletStatus("loading"); setActivePage("wallet");
+    const address = profile.walletAddress?.trim() || null;
+    setAccountProfile({ ...profile, walletAddress: address });
+    setDisplayName(profile.displayName ?? "");
+    setWalletAddress(address);
+    setWalletChainId(address ? "0x279f" : null);
+    setWalletStatus(address ? "loading" : "disconnected");
+    setWalletAssets([]);
+    setWalletError(address ? null : "This account has no wallet address. Sign out and sign in again; if it persists, the backend wallet record needs repair.");
+    setActivePage("wallet");
   }} />;
 
   return (
