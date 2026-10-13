@@ -12,12 +12,11 @@ type ContactPickerRecord = { name?: string[]; tel?: string[]; };
 function mapBackendContact(contact: BackendContact): SavedContact {
   return { id: contact.name, name: contact.name, recipient: contact.accountId ?? contact.address ?? "" };
 }
-function walletGreeting(displayName: string) {
+function walletGreeting(displayName: string, alias: string | null) {
+  if (alias) return `${alias}@monad`;
   const name = displayName.trim();
   if (!name) return "Wallet 1";
-  if (name.includes("@")) return name.toLowerCase();
-  const firstName = name.split(/\s+/)[0].toLowerCase().replace(/[^a-z0-9._-]/g, "");
-  return firstName ? `${firstName}@monad` : "Wallet 1";
+  return name;
 }
 function normalizeRecipient(recipient: string) { return recipient.trim().toLowerCase(); }
 function triggerDashboardHaptic(duration = 6) {
@@ -26,11 +25,11 @@ function triggerDashboardHaptic(duration = 6) {
 }
 
 export default function Dashboard({
-  selectedToken, onTokenChange, onNavigate, onSendToContact, displayName, onDisplayNameChange,
+  selectedToken, onTokenChange, onNavigate, onSendToContact, displayName, walletAlias, onDisplayNameChange,
   walletAddress, walletAssets, walletStatus, walletError, onConnectWallet, onCopyAddress, onRefreshWallet, onDisconnectWallet,
 }: {
   selectedToken: string; onTokenChange: (token: string) => void; onNavigate: (page: PageId) => void;
-  onSendToContact: (recipient: string) => void; displayName: string; onDisplayNameChange: (name: string) => void;
+  onSendToContact: (recipient: string) => void; displayName: string; walletAlias: string | null; onDisplayNameChange: (name: string) => void;
   walletAddress: string | null; walletAssets: WalletAsset[]; walletStatus: WalletStatus; walletError: string | null;
   onConnectWallet: () => void; onCopyAddress: () => void; onRefreshWallet: () => void; onDisconnectWallet: () => void;
 }) {
@@ -100,7 +99,7 @@ export default function Dashboard({
   return (
     <div className="page-stack dashboard-page">
       <div className="page-intro wallet-greeting-intro">
-        <h1 className="wallet-greeting">{walletGreeting(displayName)}</h1>
+        <h1 className="wallet-greeting">{walletGreeting(displayName, walletAlias)}</h1>
         <button type="button" className="wallet-name-edit" aria-label="Edit wallet display name" title="Edit wallet name" onClick={() => { triggerDashboardHaptic(); setNameInput(displayName); setShowNameEditor((open) => !open); }}><Icon name="settings" size={15} /></button>
       </div>
       {showNameEditor && <form className="wallet-name-editor" onSubmit={(event) => { event.preventDefault(); onDisplayNameChange(nameInput.trim()); setShowNameEditor(false); }}>
