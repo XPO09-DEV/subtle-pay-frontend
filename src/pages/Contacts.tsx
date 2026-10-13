@@ -233,7 +233,6 @@ export default function Contacts({
     onSendToContact(value);
   }
 
-  const savedCount = rows.filter((row) => row.isSaved).length;
   const merchantCount = rows.filter((row) => row.isMerchant && row.directions.has("out")).length;
 
   return (
