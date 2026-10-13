@@ -121,6 +121,16 @@ export default function App() {
     return () => window.clearTimeout(timer);
   }, []);
 
+  // A new screen must start at its top. On mobile the document itself scrolls,
+  // while desktop uses .page-scroll; reset both so navigation never opens mid-form.
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      document.querySelector<HTMLElement>(".page-scroll")?.scrollTo({ top: 0, behavior: "auto" });
+      window.scrollTo({ top: 0, behavior: "auto" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [activePage]);
+
   useEffect(() => {
     if (!walletAddress) return;
     let alive = true;
