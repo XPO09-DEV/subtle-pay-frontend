@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Icon from "./Icon";
 import { getPrimaryMarketHistory, getPrimaryMarketQuotes, type MarketHistory, type MarketPeriod, type MarketQuote, type PrimaryCoinId } from "../services/marketService";
 
@@ -88,13 +88,6 @@ export default function MarketPulse() {
 
   const selected = quotes.find((coin) => coin.key === activeCoin);
   const changeNegative = (selected?.change24h ?? 0) < 0;
-  const sparkSummary = useMemo(() => {
-    if (!history?.points.length) return null;
-    const first = history.points[0].price;
-    const last = history.points[history.points.length - 1].price;
-    return first ? ((last - first) / first) * 100 : null;
-  }, [history]);
-
   useEffect(() => {
     let alive = true;
     setHistory(null);
