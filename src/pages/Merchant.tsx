@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import Icon from "../components/Icon";
+import { QRCodeSVG } from "qrcode.react";
 import {
   applyForMerchantAutopay,
   enableMerchantProfile,
@@ -7,6 +8,7 @@ import {
   getMerchantProfile,
   type MerchantAutopayApplication,
   type MerchantProfile,
+  getSignedPayQr,
 } from "../services/accountService";
 
 function formatDate(value: number | null | undefined): string {
@@ -25,6 +27,7 @@ export default function Merchant() {
   const [busy, setBusy] = useState(true);
   const [actionBusy, setActionBusy] = useState(false);
   const [notice, setNotice] = useState<{ kind: "success" | "error"; text: string } | null>(null);
+  const [merchantQr, setMerchantQr] = useState("");
 
   async function refresh() {
     setBusy(true);
@@ -40,6 +43,14 @@ export default function Merchant() {
     } finally { setBusy(false); }
   }
   useEffect(() => { void refresh(); }, []);
+  useEffect(() => {
+    let alive = true;
+    if (!enabled) { setMerchantQr(""); return () => { alive = false; }; }
+    void getSignedPayQr()
+      .then((value) => { if (alive) setMerchantQr(value.payload); })
+      .catch(() => { if (alive) setMerchantQr(""); });
+    return () => { alive = false; };
+  }, [enabled]);
 
   async function register(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -79,6 +90,12 @@ export default function Merchant() {
           <p>{merchant?.status === "approved" ? "Your merchant profile has been approved by the Subtle Pay team." : "Anyone can enable a merchant profile. A verified badge is shown only after staff approval; Autopay remains a separate approval."}</p>
         </div>
       </section>
+
+      {enabled && <section className="panel merchant-receive-qr">
+        <div className="panel-heading compact"><div><div className="section-kicker">CUSTOMER PAYMENTS</div><h2>Merchant payment QR</h2><p>Customers can scan this code to pay this Subtle Pay account.</p></div><span className="status-pill neutral">MON</span></div>
+        <div className="merchant-pay-qr-wrap">{merchantQr ? <QRCodeSVG value={merchantQr} size={196} level="H" includeMargin imageSettings={{ src: "/subtle-pay-mark.svg", width: 36, height: 36, excavate: true }} /> : <div className="merchant-pay-qr-loading" role="status">Loading secure payment QR…</div>}</div>
+        <p className="tiny-note">Payments settle only through the account's configured Monad Testnet payment flow.</p>
+      </section>}
 
       <section className="panel">
         <div className="panel-heading compact"><div><div className="section-kicker">PUBLIC PROFILE</div><h2>{enabled ? "Update merchant details" : "Enable merchant profile"}</h2></div><span className="step-number">01</span></div>
