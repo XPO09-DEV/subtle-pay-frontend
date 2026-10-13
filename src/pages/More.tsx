@@ -27,7 +27,7 @@ const groups: { id: SectionId; title: string; description: string; icon: IconNam
   ]},
 ];
 
-export default function More({ accountId = "", walletAddress = null, onLogout }: { accountId?: string; walletAddress?: string | null; onLogout: () => void }) {
+export default function More({ accountId = "", walletAddress = null, currency = "USD", onLogout }: { accountId?: string; walletAddress?: string | null; currency?: string; onLogout: () => void }) {
   const [expanded, setExpanded] = useState<SectionId | null>("account");
   const [notice, setNotice] = useState("");
   const [currencySettingsOpen, setCurrencySettingsOpen] = useState(false);
@@ -67,7 +67,7 @@ export default function More({ accountId = "", walletAddress = null, onLogout }:
         ))}
       </div>
 
-      {currencySettingsOpen && <CurrencyPreference />}
+      {currencySettingsOpen && <CurrencyPreference initialCurrency={currency} />}
       {notice && <div className="inline-notice"><Icon name="info" size={16} /><span>{notice}</span><button type="button" onClick={() => setNotice("")} aria-label="Dismiss notice"><Icon name="close" size={15} /></button></div>}
     </div>
   );

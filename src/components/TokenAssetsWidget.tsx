@@ -709,12 +709,11 @@ function Chart({ pts, tf, error, hover, onHover, animKey, currency, onRetry }: C
 
 function getSubtlePayApiBaseUrl(): string {
   const configured = ((import.meta.env.VITE_SUBTLEPAY_API_BASE_URL as string | undefined) ?? "").trim().replace(/\/+$/, "");
-  if (configured) return configured;
-  if (typeof window === "undefined") return "http://127.0.0.1:4000";
-  if (["localhost", "127.0.0.1"].includes(window.location.hostname) && window.location.port === "5173") {
-    return "http://127.0.0.1:4000";
-  }
-  return window.location.origin;
+  if (typeof window === "undefined") return configured;
+  const local = ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
+  // Forwarded browser URLs must use same-origin Vite proxy, never the viewer's localhost.
+  if (!local) return window.location.origin;
+  return configured || window.location.origin;
 }
 
 export default function TokenAssetsWidget({

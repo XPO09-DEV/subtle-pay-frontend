@@ -4,35 +4,13 @@ import Icon from "../components/Icon";
 import WalletCard from "../components/WalletCard";
 import TokenAssetsWidget from "../components/TokenAssetsWidget";
 import type { WalletAsset, WalletStatus } from "../services/walletService";
+import { deleteSavedContact, getSavedContacts, saveSavedContact } from "../services/accountService";
 
 type SavedContact = {
   id: string;
   name: string;
   recipient: string;
 };
-
-type ContactPickerRecord = {
-  name?: string[];
-  tel?: string[];
-};
-
-const CONTACTS_STORAGE_KEY = "subtlePayContacts";
-
-function readSavedContacts(): SavedContact[] {
-  try {
-    const parsed: unknown = JSON.parse(window.localStorage.getItem(CONTACTS_STORAGE_KEY) ?? "[]");
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter((item): item is SavedContact =>
-      typeof item?.id === "string" &&
-      typeof item?.name === "string" &&
-      typeof item?.recipient === "string" &&
-      item.name.trim().length > 0 &&
-      item.recipient.trim().length > 0
-    );
-  } catch {
-    return [];
-  }
-}
 
 function walletGreeting(displayName: string) {
   const name = displayName.trim();
@@ -89,7 +67,8 @@ export default function Dashboard({
   onRefreshWallet: () => void;
   onDisconnectWallet: () => void;
 }) {
-  const [contacts, setContacts] = useState<SavedContact[]>(readSavedContacts);
+  const [contacts, setContacts] = useState<SavedContact[]>([]);
+  const [contactsLoading, setContactsLoading] = useState(true);
   const [showNameEditor, setShowNameEditor] = useState(false);
   const [nameInput, setNameInput] = useState(displayName);
   const [showContacts, setShowContacts] = useState(false);
@@ -98,7 +77,6 @@ export default function Dashboard({
   const [contactName, setContactName] = useState("");
   const [contactRecipient, setContactRecipient] = useState("");
   const [contactNotice, setContactNotice] = useState("");
-  const [isImportingContacts, setIsImportingContacts] = useState(false);
 
   const quickActions: { page: PageId | "contacts"; label: string; icon: "send" | "receive" | "merchant" | "users" }[] = [
     { page: "send", label: "Send", icon: "send" },
@@ -108,17 +86,21 @@ export default function Dashboard({
   ];
 
   useEffect(() => {
-    try {
-      window.localStorage.setItem(CONTACTS_STORAGE_KEY, JSON.stringify(contacts));
-    } catch {
-      setContactNotice("Contacts could not be saved in this browser.");
-    }
-  }, [contacts]);
-
-  useEffect(() => {
-    const syncContacts = () => setContacts(readSavedContacts());
-    window.addEventListener("storage", syncContacts);
-    return () => window.removeEventListener("storage", syncContacts);
+    let active = true;
+    void getSavedContacts()
+      .then((rows) => {
+        if (!active) return;
+        setContacts(rows.map((row) => ({
+          id: row.name,
+          name: row.name,
+          recipient: row.accountId ?? row.address ?? "",
+        })).filter((row) => row.recipient));
+      })
+      .catch((error: unknown) => {
+        if (active) setContactNotice(error instanceof Error ? error.message : "Could not load saved contacts.");
+      })
+      .finally(() => { if (active) setContactsLoading(false); });
+    return () => { active = false; };
   }, []);
 
   const filteredContacts = useMemo(() => {
@@ -129,71 +111,45 @@ export default function Dashboard({
     );
   }, [contactSearch, contacts]);
 
-  function addContact(event: { preventDefault: () => void }) {
+  async function addContact(event: { preventDefault: () => void }) {
     event.preventDefault();
     const name = contactName.trim();
     const recipient = contactRecipient.trim();
     if (!name || !recipient) {
-      setContactNotice("Enter both a contact name and a phone number, wallet address or handle.");
+      setContactNotice("Enter a name and an account ID, @handle or 0x wallet address.");
       return;
     }
     if (contacts.some((contact) => normalizeRecipient(contact.recipient) === normalizeRecipient(recipient))) {
       setContactNotice("That recipient is already in your contacts.");
       return;
     }
-    setContacts((current) => [...current, { id: `contact-${Date.now()}`, name, recipient }]);
-    setContactName("");
-    setContactRecipient("");
-    setShowAddContact(false);
-    setContactNotice("Contact saved.");
-  }
-
-  async function importDeviceContacts() {
-    const contactNavigator = navigator as Navigator & {
-      contacts?: {
-        select: (properties: string[], options?: { multiple?: boolean }) => Promise<ContactPickerRecord[]>;
-      };
-    };
-    if (!contactNavigator.contacts?.select) {
-      setContactNotice("Device contact import is not supported in this browser. Choose Add contact instead.");
-      return;
-    }
-
-    setIsImportingContacts(true);
     setContactNotice("");
     try {
-      const selected = await contactNavigator.contacts.select(["name", "tel"], { multiple: true });
-      const imported = selected.flatMap((item, index): SavedContact[] => {
-        const recipient = item.tel?.find((value) => value.trim())?.trim();
-        if (!recipient) return [];
-        const name = item.name?.find((value) => value.trim())?.trim() || recipient;
-        return [{ id: `device-${Date.now()}-${index}`, name, recipient }];
-      });
-      const seen = new Set(contacts.map((contact) => normalizeRecipient(contact.recipient)));
-      const additions = imported.filter((contact) => {
-        const key = normalizeRecipient(contact.recipient);
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      });
-      if (additions.length === 0) {
-        setContactNotice("No new contacts with phone numbers were selected.");
-        return;
-      }
-      setContacts((current) => {
-        const currentRecipients = new Set(current.map((contact) => normalizeRecipient(contact.recipient)));
-        return [...current, ...additions.filter((contact) => {
-          const key = normalizeRecipient(contact.recipient);
-          if (currentRecipients.has(key)) return false;
-          currentRecipients.add(key);
-          return true;
-        })];
-      });
-      setContactNotice(`${additions.length} contact${additions.length === 1 ? "" : "s"} imported.`);
-    } catch {
-      setContactNotice("Contact import was cancelled or unavailable. You can add a contact manually.");
-    } finally {
-      setIsImportingContacts(false);
+      const saved = await saveSavedContact(name, recipient);
+      const resolvedRecipient = saved.accountId ?? saved.address ?? "";
+      if (!resolvedRecipient) throw new Error("The backend did not return a usable recipient.");
+      setContacts((current) => [...current.filter((contact) => contact.name !== saved.name), {
+        id: saved.name,
+        name: saved.name,
+        recipient: resolvedRecipient,
+      }]);
+      setContactName("");
+      setContactRecipient("");
+      setShowAddContact(false);
+      setContactNotice("Contact saved to your Subtle Pay account.");
+    } catch (error) {
+      setContactNotice(error instanceof Error ? error.message : "Contact could not be saved.");
+    }
+  }
+
+  async function removeContact(name: string) {
+    setContactNotice("");
+    try {
+      await deleteSavedContact(name);
+      setContacts((current) => current.filter((contact) => contact.name !== name));
+      setContactNotice("Contact removed.");
+    } catch (error) {
+      setContactNotice(error instanceof Error ? error.message : "Contact could not be removed.");
     }
   }
 
@@ -256,10 +212,7 @@ export default function Dashboard({
             <Icon name="search" size={17} />
             <input aria-label="Search contacts" value={contactSearch} onChange={(event) => setContactSearch(event.target.value)} placeholder="Search contacts" />
           </label>
-          <button className="contacts-import-button" type="button" disabled={isImportingContacts} onClick={importDeviceContacts}>
-            <Icon name="smartphone" size={16} />
-            {isImportingContacts ? "Importing…" : "Import"}
-          </button>
+          <span className="tiny-note">Synced with your account</span>
         </div>
 
         {contactNotice && <p className="contacts-notice" role="status">{contactNotice}</p>}
@@ -271,18 +224,20 @@ export default function Dashboard({
               <input className="text-input" value={contactName} onChange={(event) => setContactName(event.target.value)} placeholder="Contact name" autoComplete="name" required />
             </label>
             <label className="contact-form-field">
-              <span>Phone, wallet address or handle</span>
-              <input className="text-input" value={contactRecipient} onChange={(event) => setContactRecipient(event.target.value)} placeholder="Phone number or @handle" autoComplete="off" required />
+              <span>Account ID, @handle or wallet address</span>
+              <input className="text-input" value={contactRecipient} onChange={(event) => setContactRecipient(event.target.value)} placeholder="Account ID, @handle or 0x address" autoComplete="off" required />
             </label>
             <button className="primary-button contact-save-button" type="submit">Save contact</button>
           </form>
         )}
 
-        {contacts.length === 0 ? (
+        {contactsLoading ? (
+          <div className="contacts-empty"><strong>Loading contacts…</strong></div>
+        ) : contacts.length === 0 ? (
           <div className="contacts-empty">
             <span className="contacts-empty-icon"><Icon name="user" size={21} /></span>
             <strong>No contacts yet</strong>
-            <span>Add contacts manually or import them from your device. Saved contacts will appear here.</span>
+            <span>Add a Subtle Pay account ID, handle or wallet address. Contacts sync to your account.</span>
           </div>
         ) : filteredContacts.length === 0 ? (
           <div className="contacts-empty compact">
@@ -298,9 +253,9 @@ export default function Dashboard({
                   <strong>{contact.name}</strong>
                   <small>{contact.recipient}</small>
                 </span>
-                <button className="contact-send-button" type="button" onClick={() => { triggerDashboardHaptic(); onSendToContact(contact.recipient); }} aria-label={`Send to ${contact.name}`}>
+                <div className="button-row"><button className="contact-send-button" type="button" onClick={() => { triggerDashboardHaptic(); onSendToContact(contact.recipient); }} aria-label={`Send to ${contact.name}`}>
                   <Icon name="send" size={15} /><span>Send</span>
-                </button>
+                </button><button className="contact-send-button" type="button" onClick={() => void removeContact(contact.name)} aria-label={`Remove ${contact.name}`}>Remove</button></div>
               </article>
             ))}
           </div>

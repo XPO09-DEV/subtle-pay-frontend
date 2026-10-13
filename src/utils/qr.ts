@@ -1,9 +1,15 @@
-// Our QR format: subtlepay://pay?to=ani@monad&addr=0x...&chain=10143
-export function buildPayQR(
-  handle: string | null | undefined,
-  address: string,
-  chainId?: number | null
-) {
+// Payment QR payloads are generated and signed by the backend. Never place an amount in a QR.
+export type ScannedRecipient = {
+  to: string;
+  address?: string;
+  chainId?: number;
+  signedPayload?: string;
+};
+
+const ADDRESS = /^0x[a-fA-F0-9]{40}$/;
+
+export function buildPayQR(handle: string | null | undefined, address: string, chainId?: number | null) {
+  // Legacy display fallback only. The active Receive screen uses the signed server payload.
   const p = new URLSearchParams();
   if (handle) p.set("to", handle);
   p.set("addr", address);
@@ -11,27 +17,30 @@ export function buildPayQR(
   return `subtlepay://pay?${p.toString()}`;
 }
 
-export type ScannedRecipient = { to: string; address?: string; chainId?: number };
-
-const ADDRESS = /^0x[a-fA-F0-9]{40}$/;
-
-// Returns who to pay, or null if the QR is not a payment QR we understand.
-// It never returns an amount, so a scan can never decide how much is paid.
+// Raw addresses remain scannable as generic wallet QR codes. Subtle Pay URIs require a signature.
 export function parsePayQR(text: string): ScannedRecipient | null {
   const t = text.trim();
   if (ADDRESS.test(t)) return { to: t, address: t };
 
-  // Standard wallet QR: ethereum:0xabc...@10143?value=...  (address and chain only)
   const eth = t.match(/^ethereum:(?:pay-)?(0x[a-fA-F0-9]{40})(?:@(\d+))?/i);
-  if (eth) return { to: eth[1], address: eth[1], chainId: eth[2] ? Number(eth[2]) : undefined };
+  if (eth) {
+    const chainId = eth[2] ? Number(eth[2]) : undefined;
+    return { to: eth[1], address: eth[1], ...(chainId ? { chainId } : {}) };
+  }
 
   try {
-    const u = new URL(t);
-    if (u.protocol !== "subtlepay:") return null;
-    const address = u.searchParams.get("addr") || undefined;
-    const to = u.searchParams.get("to") || address;
-    const chain = Number(u.searchParams.get("chain"));
-    return to ? { to, address, chainId: chain > 0 ? chain : undefined } : null;
+    const url = new URL(t);
+    if (url.protocol !== "subtlepay:" || url.hostname !== "pay") return null;
+    const address = url.searchParams.get("addr") || "";
+    const to = url.searchParams.get("to") || address;
+    const chainId = Number(url.searchParams.get("chain"));
+    const issuedAt = Number(url.searchParams.get("iat"));
+    const signature = url.searchParams.get("sig") || "";
+    if (!ADDRESS.test(address) || !to || to.length > 80 || chainId !== 10143 ||
+        !Number.isSafeInteger(issuedAt) || issuedAt <= 0 || !/^[a-fA-F0-9]{64}$/.test(signature)) {
+      return null;
+    }
+    return { to, address, chainId, signedPayload: t };
   } catch {
     return null;
   }

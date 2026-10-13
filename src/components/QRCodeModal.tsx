@@ -2,15 +2,19 @@ import { useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { copyText } from "../services/walletService";
 
-type Props = { handle?: string | null; address: string; chainId?: number | null; onClose: () => void };
+type Props = { handle?: string | null; address: string; chainId?: number | null; payload: string; onClose: () => void };
 
-export default function QRCodeModal({ handle, address, chainId, onClose }: Props) {
+export default function QRCodeModal({ handle, address, payload, onClose }: Props) {
   const [copied, setCopied] = useState(false);
 
  async function copy() {
-  await copyText(address);
-  setCopied(true);
-  setTimeout(() => setCopied(false), 1500);
+  try {
+    await copyText(address);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1500);
+  } catch {
+    setCopied(false);
+  }
  }
 
   async function share() {
@@ -39,7 +43,7 @@ export default function QRCodeModal({ handle, address, chainId, onClose }: Props
         </div>
 
         <div className="qr-sheet">
-         <QRCodeSVG value={buildPayQR(handle, address, chainId)} size={220} fgColor="#101a33" level="M" />
+         <QRCodeSVG value={payload} size={220} fgColor="#101a33" level="M" />
         </div>
         <p className="receive-full-address">{address}</p>
 

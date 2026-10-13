@@ -220,8 +220,8 @@ export interface SendPaymentResult {
   txHash: string;
 }
 
-export async function getAccountHome(): Promise<AccountHome> {
-  return authenticatedRequest<AccountHome>("/home");
+export async function getAccountHome(force = false): Promise<AccountHome> {
+  return authenticatedRequest<AccountHome>(force ? "/home?refresh=true" : "/home");
 }
 
 export async function submitAccountPayment(input: SendPaymentInput): Promise<SendPaymentResult> {
@@ -235,10 +235,131 @@ export async function submitAccountPayment(input: SendPaymentInput): Promise<Sen
   });
 }
 
-export async function getPaymentHistory(): Promise<PaymentRecord[]> {
-  return authenticatedRequest<PaymentRecord[]>("/payments");
+export interface PaymentHistoryPage {
+  items: PaymentRecord[];
+  limit: number;
+  offset: number;
+  total: number;
+  nextOffset: number | null;
+}
+
+export async function getPaymentHistory(options: {
+  limit?: number;
+  offset?: number;
+  status?: "pending" | "submitted" | "confirmed" | "failed";
+  direction?: "in" | "out";
+} = {}): Promise<PaymentHistoryPage> {
+  const params = new URLSearchParams({
+    limit: String(options.limit ?? 50),
+    offset: String(options.offset ?? 0),
+  });
+  if (options.status) params.set("status", options.status);
+  if (options.direction) params.set("direction", options.direction);
+  return authenticatedRequest<PaymentHistoryPage>(`/payments?${params.toString()}`);
+}
+
+export interface SavedContact {
+  name: string;
+  accountId: string | null;
+  address: string | null;
+  createdAt: number;
+}
+
+export async function getSavedContacts(): Promise<SavedContact[]> {
+  return authenticatedRequest<SavedContact[]>("/contacts");
+}
+
+/** Saves only a Subtle Pay account ID, @alias, or EVM address on the backend. */
+export async function saveSavedContact(name: string, recipient: string): Promise<Omit<SavedContact, "createdAt">> {
+  const value = recipient.trim();
+  const isAddress = /^0x[a-fA-F0-9]{40}$/.test(value);
+  const target = isAddress
+    ? { address: value }
+    : { accountId: value.startsWith("@") ? value : value };
+  return authenticatedRequest("/contacts", {
+    method: "POST",
+    body: JSON.stringify({ name, ...target }),
+  });
+}
+
+export async function deleteSavedContact(name: string): Promise<{ ok: boolean }> {
+  return authenticatedRequest<{ ok: boolean }>(`/contacts/${encodeURIComponent(name)}`, { method: "DELETE" });
+}
+
+export async function setAccountCurrency(currency: string): Promise<{ currency: string }> {
+  return authenticatedRequest<{ currency: string }>("/me/currency", {
+    method: "PUT",
+    body: JSON.stringify({ currency: currency.trim().toUpperCase() }),
+  });
 }
 
 export async function getAccountRates(currency: "USD" | "INR" = "USD"): Promise<{ tokenUsd: number; usdLocal: number; currency: string; updatedAt: string }> {
   return rawRequest<{ tokenUsd: number; usdLocal: number; currency: string; updatedAt: string }>(`/rates?currency=${currency}`, {}, false);
+}
+
+
+export interface PersonalPaymentQr {
+  payload: string;
+  address: string;
+  alias: string | null;
+  chainId: 10143;
+  issuedAt: number;
+  expiresAt: number;
+}
+
+export async function getPersonalPaymentQr(): Promise<PersonalPaymentQr> {
+  return authenticatedRequest<PersonalPaymentQr>("/wallet/qr");
+}
+
+export interface VerifiedPaymentQr {
+  to: string;
+  address: string;
+  alias: string | null;
+  chainId: 10143;
+  verified: true;
+  expiresAt: number;
+}
+
+export async function verifyPaymentQrPayload(payload: string): Promise<VerifiedPaymentQr> {
+  return rawRequest<VerifiedPaymentQr>("/qr/verify", {
+    method: "POST",
+    body: JSON.stringify({ payload }),
+  }, false);
+}
+
+export interface AccountNotification {
+  id: string;
+  transactionId: string;
+  type: "payment_submitted" | "payment_confirmed" | "payment_failed" | string;
+  title: string;
+  message: string;
+  createdAt: string;
+  readAt: string | null;
+}
+
+export interface NotificationPage {
+  items: AccountNotification[];
+  total: number;
+  unreadCount: number;
+  limit: number;
+  offset: number;
+  nextOffset: number | null;
+  updatedAt: string;
+}
+
+export async function getNotifications(options: { limit?: number; offset?: number; unreadOnly?: boolean } = {}): Promise<NotificationPage> {
+  const params = new URLSearchParams({
+    limit: String(options.limit ?? 50),
+    offset: String(options.offset ?? 0),
+    unreadOnly: String(options.unreadOnly ?? false),
+  });
+  return authenticatedRequest<NotificationPage>(`/notifications?${params.toString()}`);
+}
+
+export async function markNotificationRead(id: string): Promise<{ ok: boolean; readAt: string }> {
+  return authenticatedRequest<{ ok: boolean; readAt: string }>(`/notifications/${encodeURIComponent(id)}/read`, { method: "POST" });
+}
+
+export async function markAllNotificationsRead(): Promise<{ ok: boolean; updated: number; readAt: string }> {
+  return authenticatedRequest<{ ok: boolean; updated: number; readAt: string }>("/notifications/read-all", { method: "POST" });
 }
