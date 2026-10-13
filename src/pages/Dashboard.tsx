@@ -131,7 +131,6 @@ export default function Dashboard({
 
       <MarketPulse />
 
-      <section className="panel testnet-assets-note"><div className="panel-heading compact"><div><div className="section-kicker">NETWORK</div><h2>Monad Testnet only</h2></div><span className="status-pill neutral">10143</span></div><p>Balances and payments come from your Subtle Pay backend account. Only native testnet MON is spendable in this hackathon build; mainnet and other-chain transfers are disabled.</p></section>
       <div className="mobile-nav-spacer" />
     </div>
   );
