@@ -28,10 +28,7 @@ button, input, select { -webkit-tap-highlight-color: transparent; }
 
 .app-layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); min-height: 100svh; max-width: 1680px; margin: 0 auto; background: #fff; }
 .desktop-sidebar { position: sticky; top: 0; display: flex; flex-direction: column; height: 100svh; padding: 25px 16px 17px; border-right: 1px solid #e8ebf2; background: #fff; }
-.sidebar-brand { display: flex; align-items: center; gap: 11px; padding: 0 8px 29px; }
 .brand-monogram { display: inline-grid; width: 36px; height: 36px; flex: 0 0 36px; place-items: center; border-radius: 12px; background: #111827; color: #fff; font-size: 19px; font-weight: 650; letter-spacing: -.08em; }
-.sidebar-brand strong, .mobile-header-brand strong { display: block; color: #172033; font-size: 14px; font-weight: 700; letter-spacing: -.04em; }
-.sidebar-brand small, .mobile-header-brand small { display: block; margin-top: 3px; color: #969daf; font-size: 10px; }
 .sidebar-label { padding: 4px 10px 11px; color: #adb4c3; font-size: 9px; font-weight: 750; letter-spacing: .14em; }
 .sidebar-nav { display: grid; gap: 4px; }
 .sidebar-link { position: relative; display: flex; width: 100%; min-height: 43px; align-items: center; gap: 12px; padding: 0 12px; border: 0; border-radius: 10px; background: transparent; color: #6d7688; text-align: left; font-size: 12px; font-weight: 550; transition: background .18s ease, color .18s ease; }
@@ -47,7 +44,6 @@ button, input, select { -webkit-tap-highlight-color: transparent; }
 
 .workspace { display: flex; min-width: 0; min-height: 100svh; flex-direction: column; background: #fff; }
 .app-header { position: sticky; z-index: 20; top: 0; display: flex; height: 54px; min-height: 54px; align-items: center; gap: 17px; padding: 0 35px; border-bottom: 1px solid #e9ecf3; background: rgba(255,255,255,.93); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
-.mobile-header-brand { display: none; align-items: center; gap: 9px; }
 .mobile-menu-button { display: none; width: 34px; height: 34px; flex: 0 0 34px; align-items: center; justify-content: center; padding: 0; border: 0; border-radius: 9px; background: transparent; color: rgb(0, 0, 0); font: inherit; }
 .mobile-menu-button:hover { background: #f3f4f6; }
 .mobile-menu-backdrop { position: fixed; z-index: 35; inset: 0; background: rgba(18, 24, 39, .18); }
@@ -58,7 +54,6 @@ button, input, select { -webkit-tap-highlight-color: transparent; }
 .mobile-menu-item:hover, .mobile-menu-item.active { background: #f2f4fa; color: #111827; }
 .mobile-menu-item.active { font-weight: 700; }
 .mobile-menu-active-dot { width: 6px; height: 6px; margin-left: auto; border-radius: 50%; background: #111827; }
-.mobile-header-brand .brand-monogram { width: 31px; height: 31px; flex-basis: 31px; border-radius: 10px; font-size: 16px; }
 .header-status { display: inline-flex; align-items: center; gap: 7px; padding: 7px 9px; border: 1px solid #e5e8ef; border-radius: 20px; background: #fff; color: #6f788b; font-size: 9px; font-weight: 750; letter-spacing: .09em; }
 .header-status-dot { width: 6px; height: 6px; border-radius: 50%; background: #dcac58; }
 .header-actions { display: flex; align-items: center; gap: 14px; margin-left: auto; }
@@ -1356,20 +1351,11 @@ button, input, select { -webkit-tap-highlight-color: transparent; }
 }
 
 
-/* Official Subtle Pay mark used across wallet navigation and the opening card. */
-.brand-logo-mark {
-  display: block;
-  width: 38px;
-  height: 38px;
-  flex: 0 0 38px;
-  object-fit: contain;
-}
 .card-brand {
   display: inline-flex;
   align-items: center;
   gap: 6px;
 }
-.card-brand-mark {
   display: block;
   width: 22px;
   height: 22px;
@@ -1377,7 +1363,6 @@ button, input, select { -webkit-tap-highlight-color: transparent; }
   object-fit: contain;
   filter: drop-shadow(0 1px 1px rgba(0,0,0,.12));
 }
-.loading-brand-logo {
   display: block;
   width: min(210px, 70%);
   margin: 0 auto 24px;
