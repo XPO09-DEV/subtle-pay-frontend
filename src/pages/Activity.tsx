@@ -123,7 +123,7 @@ export default function Activity() {
                     <p>{outgoing ? "To " : "From "}<b>{payment.counterparty || "External wallet"}</b></p>
                     {payment.note && <small className="history-transaction-note">{payment.note}</small>}
                     <small className="history-transaction-time">{formatTime(payment.createdAt)} · ID {short(payment.id, 8, 5)}</small>
-                    {payment.txHash && <a className="history-explorer-link" href={`https://testnet.monadexplorer.com/tx/${encodeURIComponent(payment.txHash)}`} target="_blank" rel="noreferrer"><Icon name="external-link" size={13} /> View on explorer <code>{short(payment.txHash, 10, 8)}</code></a>}
+                    {payment.txHash && <a className="history-explorer-link" href={`https://testnet.monadexplorer.com/tx/${encodeURIComponent(payment.txHash)}`} target="_blank" rel="noreferrer"><Icon name="arrow-up-right" size={13} /> View on explorer <code>{short(payment.txHash, 10, 8)}</code></a>}
                   </div>
                   <div className="history-transaction-value">
                     <strong>{outgoing ? "−" : "+"}{payment.localValue} {payment.displayCurrency}</strong>
