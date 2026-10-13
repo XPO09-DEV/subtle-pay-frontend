@@ -27,7 +27,7 @@ export default function Register() {
     setError("");
     try {
       const session = await api.register(password);
-      login(session.token, session.refreshToken);
+      login(session.token);
       setAccountId(session.accountId ?? "");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Unable to create your account.");
