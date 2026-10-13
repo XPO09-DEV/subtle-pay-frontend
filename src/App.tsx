@@ -194,7 +194,7 @@ export default function App() {
   }
 
   if (showOpening) return <div className="startup-screen"><div className="startup-canvas"><WalletCard selectedToken={selectedToken} onTokenChange={setSelectedToken} isOpening /></div></div>;
-  if (accountLoading) return <main className="account-gate"><section className="account-gate-card"><strong>Subtle Pay</strong><p className="account-gate-muted">Restoring your secure account session…</p></section></main>;
+  if (accountLoading) return <main className="account-gate"><section className="account-gate-card"><img className="account-gate-logo loading-brand-logo" src="/subtle-pay-logo.svg" alt="Subtle Pay" /><p className="account-gate-muted">Restoring your secure account session…</p></section></main>;
   if (!accountProfile) return <AccountGate onAuthenticated={(profile) => {
     setAccountProfile(profile); setDisplayName(profile.displayName ?? ""); setWalletAddress(profile.walletAddress);
     setWalletChainId("0x279f"); setWalletStatus("loading"); setActivePage("wallet");
@@ -203,7 +203,7 @@ export default function App() {
   return (
     <div className="app-layout">
       <aside className="desktop-sidebar">
-        <div className="sidebar-brand"><span className="brand-monogram">S</span><span><strong>Subtle Pay</strong><small>Wallet</small></span></div>
+        <div className="sidebar-brand"><img className="brand-logo-mark" src="/subtle-pay-mark.svg" alt="" /><span><strong>Subtle Pay</strong><small>Wallet</small></span></div>
         <div className="sidebar-label">MENU</div>
         <nav className="sidebar-nav" aria-label="Main navigation">
           {[
