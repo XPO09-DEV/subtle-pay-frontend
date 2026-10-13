@@ -35,7 +35,7 @@ export default function Login() {
 
   return (
     <div className="space-y-4 p-6 pt-24">
-      <h1 className="text-center text-3xl font-bold text-brand">SUBTLE PAY</h1>
+      <img className="mx-auto block w-48 max-w-full h-auto" src="/subtle-pay-logo.svg" alt="Subtle Pay" />
       <p className="pb-4 text-center text-sm text-gray-500">Simple money. Bigger possibilities.</p>
       <form onSubmit={handleSubmit} className="space-y-3">
         <Input
