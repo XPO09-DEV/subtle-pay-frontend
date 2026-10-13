@@ -18,9 +18,6 @@ function walletGreeting(displayName: string) {
   const firstName = name.split(/\s+/)[0].toLowerCase().replace(/[^a-z0-9._-]/g, "");
   return firstName ? `${firstName}@monad` : "Wallet 1";
 }
-function contactInitials(name: string) {
-  return name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "•";
-}
 function normalizeRecipient(recipient: string) { return recipient.trim().toLowerCase(); }
 function triggerDashboardHaptic(duration = 6) {
   try { if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") navigator.vibrate(duration); }
