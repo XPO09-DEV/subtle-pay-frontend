@@ -123,17 +123,17 @@ function PriceLine({ history, period }: { history: MarketHistory; period: Market
     setHover(closest);
   }
 
+  if (points.length < 2) {
+    return <div className="market-chart-empty">Not enough verified price points to draw this chart.</div>;
+  }
+
   const selectedIndex = hover == null ? points.length - 1 : Math.max(0, Math.min(hover, points.length - 1));
   const selectedPoint = points[selectedIndex];
   const firstPoint = points[0];
   const selectedCoordinate = geometry?.coordinates[selectedIndex] ?? null;
-  const periodChange = firstPoint?.price
+  const periodChange = firstPoint.price
     ? ((selectedPoint.price - firstPoint.price) / firstPoint.price) * 100
     : 0;
-
-  if (points.length < 2) {
-    return <div className="market-chart-empty">Not enough verified price points to draw this chart.</div>;
-  }
 
   return (
     <div className="market-chart-wrap">
