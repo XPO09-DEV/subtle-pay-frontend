@@ -12,7 +12,6 @@ import {
 } from "../services/accountService";
 
 import {
-  getChainLabel,
   isValidEvmAddress,
 } from "../services/walletService";
 
@@ -76,7 +75,6 @@ export default function Send({
   onBack,
   initialRecipient = "",
   walletAddress = null,
-  walletChainId = null,
   onTransactionSubmitted,
 }: SendProps) {
   // Form state
