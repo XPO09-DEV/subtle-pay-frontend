@@ -545,12 +545,12 @@ export default function Send({
         </section>
       )}
 
-      {notice && (
+      {notice && !result && (
         <div
-          className={result?.status === "confirmed" ? "inline-notice success" : "inline-notice"}
+          className="inline-notice"
           role="status"
         >
-          <Icon name={result?.status === "confirmed" ? "check-circle" : "info"} size={16} />
+          <Icon name="info" size={16} />
           <span>{notice}</span>
         </div>
       )}
