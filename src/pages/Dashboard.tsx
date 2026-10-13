@@ -129,7 +129,7 @@ export default function Dashboard({
           : <div className="contacts-list">{filteredContacts.map((contact) => <article className="contact-row" key={contact.id}><span className="avatar-initials contact-avatar">{contact.name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "•"}</span><span className="recipient-copy contact-copy"><strong>{contact.name}</strong><small>{contact.recipient}</small></span><button className="contact-send-button" type="button" onClick={() => { triggerDashboardHaptic(); onSendToContact(contact.recipient); }} aria-label={`Send to ${contact.name}`}><Icon name="send" size={15} /><span>Send</span></button></article>)}</div>}
       </section></div>}
 
-      <TokenAssetsWidget holdings={walletAssets} walletConnected={walletStatus === "ready"} />
+      <TokenAssetsWidget holdings={walletAssets.map((asset) => ({ id: asset.id, amount: asset.balance, symbol: asset.tokenSymbol, name: asset.tokenName, image: asset.thumbnail, price: asset.priceUsd, valueUsd: asset.balanceUsd, network: asset.chainLabel, contractAddress: asset.contractAddress }))} walletConnected={walletStatus === "ready"} />
 
       <div className="mobile-nav-spacer" />
     </div>
