@@ -1156,7 +1156,7 @@ export default function TokenAssetsWidget({
           <>
             <div className="ta-hero-top">
               <span className="ta-hero-name">
-                <Logo src={selected.image} symbol={selected.symbol} size={26} />
+                <Logo src={selected.image} symbol={selected.symbol} size={26} loading={status === "loading"} />
                 <b>{selected.symbol}</b>
                 <small>{selected.name}</small>
               </span>
@@ -1348,7 +1348,7 @@ export default function TokenAssetsWidget({
                   {searchSelected && selected && (
                     <section className="ta-search-preview" aria-label={`${selected.name} selected asset details`}>
                       <div className="ta-search-preview-header">
-                        <Logo src={selected.image} symbol={selected.symbol} size={42} />
+                        <Logo src={selected.image} symbol={selected.symbol} size={42} loading={searchLoading || (searchSelected !== null && selected.price == null)} />
                         <div className="ta-search-preview-title"><strong>{selected.name}</strong><span>{selected.symbol.toUpperCase()} · {searchSelected.networkLabel} · {searchSelected.assetKind}</span></div>
                         <button type="button" className="ta-search-preview-dismiss" onClick={() => { setSearchSelected(null); setSelectedId(searchReturnSelectedId.current); setChartErr(null); }}>Hide details</button>
                       </div>
@@ -1382,7 +1382,7 @@ export default function TokenAssetsWidget({
                       ) : visibleSearchResults.map((coin) => (
                         <button key={coin.resultKey} type="button" role="option" aria-selected={coin.resultKey === searchSelected?.resultKey}
                           className="ta-search-result" onClick={() => chooseSearchToken(coin)}>
-                          <Logo src={coin.thumb ?? null} symbol={coin.symbol.toUpperCase()} size={42} />
+                          <Logo src={coin.thumb ?? null} symbol={coin.symbol.toUpperCase()} size={42} loading={searchLoading} />
                           <span className="ta-search-result-copy"><b>{coin.name}</b><small>{coin.symbol.toUpperCase()} <span className="ta-search-dot">·</span> {coin.assetKind}</small><small className="ta-search-address" title={coin.contractAddress ?? "Native asset"}>{coin.contractAddress ? `${coin.contractAddress.slice(0, 8)}…${coin.contractAddress.slice(-5)}` : "Native asset · no contract"}</small></span>
                           <span className={`ta-search-network-badge ${coin.networkId}`}>{coin.networkLabel}</span><span className="ta-search-result-view" aria-hidden="true">↗</span>
                         </button>
@@ -1425,7 +1425,7 @@ export default function TokenAssetsWidget({
               className={`ta-row ${a.id === selected?.id ? "is-sel" : ""}`}
               onClick={() => choose(a)}
             >
-              <Logo src={a.image} symbol={a.symbol} badge={badge} />
+              <Logo src={a.image} symbol={a.symbol} badge={badge} loading={status === "loading"} />
               <span className="ta-meta">
                 <b>{a.symbol}</b>
                 <small>{a.price == null ? (status === "loading" ? "Fetching data..." : "Price unavailable") : fmtMoney(a.price, currency, "price")}{a.network ? ` · ${a.network}` : ""}</small>
