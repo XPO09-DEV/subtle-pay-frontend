@@ -11,10 +11,7 @@ import {
   verifyPayQr,
 } from "../services/accountService";
 
-import {
-  getChainLabel,
-  isValidEvmAddress,
-} from "../services/walletService";
+import { isValidEvmAddress } from "../services/walletService";
 
 import type { ScannedRecipient } from "../utils/qr";
 
@@ -76,7 +73,6 @@ export default function Send({
   onBack,
   initialRecipient = "",
   walletAddress = null,
-  walletChainId = null,
   onTransactionSubmitted,
 }: SendProps) {
   // Form state
