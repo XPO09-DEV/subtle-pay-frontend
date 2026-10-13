@@ -246,7 +246,24 @@ export default function App() {
             onTransactionSubmitted={() => { if (walletAddress) void refreshWallet(walletAddress, true); }} />}
           {activePage === "receive" && <Receive walletAddress={walletAddress} walletChainId={walletChainId} displayName={displayName} onConnectWallet={connectWallet} />}
           {activePage === "merchant" && <Merchant />}
-          {activePage === "more" && <More accountId={accountProfile.accountId} walletAddress={walletAddress} onLogout={disconnectWallet} />}
+          {activePage === "more" && <More
+            accountId={accountProfile.accountId}
+            walletAddress={walletAddress}
+            profile={accountProfile}
+            onLogout={disconnectWallet}
+            onProfileUpdated={(profile) => { setAccountProfile(profile); setDisplayName(profile.displayName ?? ""); setWalletAddress(profile.walletAddress); }}
+            onAccountSwitched={(profile) => {
+              setAccountProfile(profile);
+              setDisplayName(profile.displayName ?? "");
+              setWalletAddress(profile.walletAddress);
+              setWalletChainId(profile.walletAddress ? "0x279f" : null);
+              setWalletStatus(profile.walletAddress ? "loading" : "disconnected");
+              setWalletAssets([]);
+              setSelectedToken("");
+              setWalletError(null);
+              setActivePage("wallet");
+            }}
+          />}
           {activePage === "activity" && <Activity />}
           {activePage === "notifications" && <Notifications />}
         </main>
