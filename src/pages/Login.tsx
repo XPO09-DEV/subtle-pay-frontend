@@ -24,7 +24,7 @@ export default function Login() {
     setError("");
     try {
       const session = await api.login(accountId.trim(), password);
-      login(session.token, session.refreshToken);
+      login(session.token);
       navigate("/", { replace: true });
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Unable to log in.");
