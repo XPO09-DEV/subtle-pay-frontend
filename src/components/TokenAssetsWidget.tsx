@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type WheelEvent as ReactWheelEvent } from "react";
+import { createPortal } from "react-dom";
 import { CURRENCIES, DEFAULT_CURRENCY_KEY, getCurrencySymbol, readDefaultCurrency } from "../data/currencies";
 import "./TokenAssetsWidget.css";
 
@@ -107,7 +108,7 @@ function errMsg(e: unknown): string {
 }
 
 function fmtMoney(n: number | null | undefined, currency: string, kind: "price" | "value"): string {
-  if (n == null || !isFinite(n)) return "â€”";
+  if (n == null || !isFinite(n)) return "Fetching data...";
   const a = Math.abs(n);
   let max: number;
   if (kind === "value") max = a >= 1 ? 2 : a >= 0.01 ? 3 : a >= 0.0001 ? 5 : 8;
@@ -507,16 +508,30 @@ async function fetchChart(base: string, headers: Record<string, string>, id: str
 /* Small bits                                                          */
 /* ------------------------------------------------------------------ */
 
-function Logo({ src, symbol, size = 40, badge }: { src: string | null; symbol: string; size?: number; badge?: string | null }) {
-  const [ok, setOk] = useState(true);
+function Logo({ src, symbol, size = 40, badge, loading = false }: { src: string | null; symbol: string; size?: number; badge?: string | null; loading?: boolean }) {
+  const [imageStatus, setImageStatus] = useState<"loading" | "ready" | "missing">(src ? "loading" : "missing");
+  useEffect(() => { setImageStatus(src ? "loading" : "missing"); }, [src]);
+  const showPlaceholder = !src || imageStatus !== "ready";
+  const showSpinner = imageStatus === "loading" || (!src && loading);
   return (
-    <span className="ta-logo" style={{ width: size, height: size }}>
-      {src && ok ? (
-        <img src={src} alt="" loading="lazy" onError={() => setOk(false)} />
-      ) : (
-        <span className="ta-logo-fb">{symbol.slice(0, 1)}</span>
+    <span className="ta-logo" style={{ width: size, height: size }} title={showSpinner ? "Fetching token data..." : showPlaceholder ? "Token logo unavailable" : symbol}>
+      {src && imageStatus !== "missing" && (
+        <>
+          {imageStatus !== "ready" && <span className="ta-logo-fb is-fetching" aria-hidden="true"><span className="ta-logo-spinner" /></span>}
+          <img src={src} alt="" loading="lazy" className={imageStatus === "ready" ? "is-loaded" : "is-pending"} onLoad={() => setImageStatus("ready")} onError={() => setImageStatus("missing")} />
+        </>
       )}
-      {badge ? <i className="ta-badge">{badge}</i> : null}
+      {showPlaceholder && !(src && imageStatus !== "missing") && (
+        <span className={`ta-logo-fb ${showSpinner ? "is-fetching" : "is-unavailable"}`} role="img" aria-label={showSpinner ? "Fetching token logo" : "Token logo unavailable"}>
+          {showSpinner ? <span className="ta-logo-spinner" aria-hidden="true" /> : (
+            <svg viewBox="0 0 24 24" width="52%" height="52%" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+              <path d="M12 3.5 20 8v8l-8 4.5L4 16V8l8-4.5Z" />
+              <path d="m8.5 9.5 3.5-2 3.5 2v5L12 16.5l-3.5-2v-5Z" />
+            </svg>
+          )}
+        </span>
+      )}
+      {badge && src && imageStatus === "ready" ? <i className="ta-badge">{badge}</i> : null}
     </span>
   );
 }
@@ -661,7 +676,9 @@ function Chart({ pts, tf, error, hover, onHover, animKey, currency, onRetry }: C
   function zoomBy(factor: number, anchorRatio = 0.5) {
     if (fullEnd < 2) return;
     const currentSpan = Math.max(1, safeEnd - safeStart);
-    const nextSpan = Math.max(1, Math.min(fullEnd, Math.round(currentSpan * factor)));
+    let nextSpan = Math.round(currentSpan * factor);
+    if (nextSpan === currentSpan && Math.abs(factor - 1) > 0.001) nextSpan += factor < 1 ? -1 : 1;
+    nextSpan = Math.max(1, Math.min(fullEnd, nextSpan));
     const ratio = Math.min(1, Math.max(0, anchorRatio));
     const anchorIndex = safeStart + ratio * currentSpan;
     const proposedStart = Math.round(anchorIndex - ratio * nextSpan);
@@ -673,7 +690,8 @@ function Chart({ pts, tf, error, hover, onHover, animKey, currency, onRetry }: C
     e.preventDefault();
     const rect = e.currentTarget.getBoundingClientRect();
     const ratio = Math.min(1, Math.max(0, (e.clientX - rect.left) / Math.max(1, rect.width)));
-    zoomBy(e.deltaY < 0 ? 0.72 : 1.4, ratio);
+    const exponent = Math.max(-0.06, Math.min(0.06, e.deltaY * 0.0006));
+    zoomBy(Math.exp(exponent), ratio);
   }
 
   const hp = geo && hover != null ? geo.xy[Math.max(0, Math.min(geo.xy.length - 1, hover - safeStart))] : null;
@@ -693,7 +711,7 @@ function Chart({ pts, tf, error, hover, onHover, animKey, currency, onRetry }: C
         onPointerLeave={() => { if (pointerPositions.current.size === 0) onHover(null); }}
         onWheel={wheel}
         onDoubleClick={resetZoom}
-        aria-label="Price graph. Hover or drag to inspect; scroll, use the zoom controls, or pinch to zoom."
+        aria-label="Price graph. Hover or drag to inspect; scroll or pinch gently to zoom."
       >
         {geo && (
           <svg width={w} height={CH_H} viewBox={`0 0 ${w} ${CH_H}`} role="img" aria-label="Price chart">
@@ -830,6 +848,21 @@ export default function TokenAssetsWidget({
   const [searchSelected, setSearchSelected] = useState<SearchCoin | null>(null);
   const [searchNetworkFilter, setSearchNetworkFilter] = useState<SearchNetworkFilter>("all");
   const [searchRetry, setSearchRetry] = useState(0);
+  const searchReturnSelectedId = useRef("");
+  const closeSearch = useCallback(() => {
+    setSearchOpen(false);
+    setSelectedId(searchReturnSelectedId.current);
+    setSearchSelected(null);
+    setChartErr(null);
+  }, []);
+  const openSearch = useCallback(() => {
+    searchReturnSelectedId.current = selectedId;
+    setSearchQuery("");
+    setSearchResults([]);
+    setSearchSelected(null);
+    setSearchNetworkFilter("all");
+    setSearchOpen(true);
+  }, [selectedId]);
   const visibleSearchResults = useMemo(
     () => searchNetworkFilter === "all" ? searchResults : searchResults.filter((coin) => coin.networkId === searchNetworkFilter),
     [searchNetworkFilter, searchResults],
@@ -1123,7 +1156,7 @@ export default function TokenAssetsWidget({
           <>
             <div className="ta-hero-top">
               <span className="ta-hero-name">
-                <Logo src={selected.image} symbol={selected.symbol} size={26} />
+                <Logo src={selected.image} symbol={selected.symbol} size={26} loading={status === "loading"} />
                 <b>{selected.symbol}</b>
                 <small>{selected.name}</small>
               </span>
@@ -1173,11 +1206,11 @@ export default function TokenAssetsWidget({
                         >
                           <span className="ta-option-symbol">{option.symbol}</span>
                           <span className="ta-option-copy"><b>{option.code.toUpperCase()}</b><small>{option.name}</small></span>
-                          {currency === option.code && <span className="ta-option-check" aria-hidden="true">âœ“</span>}
+                          {currency === option.code && <span className="ta-option-check" aria-hidden="true"><svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 8 3 3 7-7" /></svg></span>}
                         </button>
                       ))}
                     </div>
-                    <p className="ta-currency-menu-note">Set your default in More â†’ Privacy & preferences â†’ Currency preference.</p>
+                    <p className="ta-currency-menu-note">Set your default in More &gt; Privacy &amp; preferences &gt; Currency preference.</p>
                   </div>
                 )}
               </div>
@@ -1187,7 +1220,7 @@ export default function TokenAssetsWidget({
               <span className="ta-big">{fmtMoney(shownPrice, currency, "price")}</span>
               {deltaPct != null && (
                 <span className={`ta-delta ${deltaPct >= 0 ? "up" : "down"}`}>
-                  {deltaPct >= 0 ? "â–²" : "â–¼"} {Math.abs(deltaPct).toFixed(2)}%
+                  {deltaPct >= 0 ? "+" : "-"}{Math.abs(deltaPct).toFixed(2)}%
                 </span>
               )}
             </div>
@@ -1222,7 +1255,7 @@ export default function TokenAssetsWidget({
             <strong>{walletConnected ? "No supported asset to chart" : "Your wallet, your assets"}</strong>
             <span>{walletConnected ? "No indexed positive balances were found for the connected address." : "Connect a wallet to view assets you own, or search the market without connecting one."}</span>
             {!walletConnected && onConnectWallet && <button type="button" onClick={() => { triggerHaptic(); onConnectWallet(); }}>Connect wallet</button>}
-            <button type="button" className="ta-hero-search-link" onClick={() => { triggerHaptic(); setSearchQuery(""); setSearchResults([]); setSearchSelected(null); setSearchNetworkFilter("all"); setSearchOpen(true); }}>
+            <button type="button" className="ta-hero-search-link" onClick={() => { triggerHaptic(); openSearch(); }}>
               Search market assets <span>↗</span>
             </button>
           </div>
@@ -1267,8 +1300,8 @@ export default function TokenAssetsWidget({
               aria-label={searchOpen ? "Close multichain search" : "Search any coin on supported blockchains"} aria-expanded={searchOpen}
               onClick={() => {
                 triggerHaptic();
-                if (searchOpen) { setSearchOpen(false); setSearchQuery(""); setSearchResults([]); setSearchNetworkFilter("all"); }
-                else { setSearchQuery(""); setSearchResults([]); setSearchNetworkFilter("all"); setSearchOpen(true); }
+                if (searchOpen) closeSearch();
+                else openSearch();
               }}>
               {searchOpen ? (
                 <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 5 10 10M15 5 5 15" /></svg>
@@ -1276,15 +1309,15 @@ export default function TokenAssetsWidget({
                 <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" /><path d="m13 13 4 4" /></svg>
               )}
             </button>
-            {searchOpen && (
-              <div className="ta-search-page-backdrop" role="presentation" onClick={() => setSearchOpen(false)}>
+            {searchOpen && createPortal(
+              <div className="ta-search-page-backdrop" role="presentation" onClick={closeSearch}>
                 <section className="ta-search-page" role="dialog" aria-modal="true" aria-label="Multichain asset search" onClick={(event) => event.stopPropagation()}>
                   <header className="ta-search-page-header">
-                    <button type="button" className="ta-search-back" onClick={() => setSearchOpen(false)} aria-label="Back to token assets">
+                    <button type="button" className="ta-search-back" onClick={closeSearch} aria-label="Back to token assets">
                       <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6M9 12h12" /></svg>
                     </button>
                     <div className="ta-search-page-title"><span>SUBTLE PAY · MARKET DISCOVERY</span><strong>Search assets</strong></div>
-                    <button type="button" className="ta-search-page-close" onClick={() => setSearchOpen(false)} aria-label="Close search">
+                    <button type="button" className="ta-search-page-close" onClick={closeSearch} aria-label="Close search">
                       <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="m5 5 10 10M15 5 5 15" /></svg>
                     </button>
                   </header>
@@ -1293,7 +1326,7 @@ export default function TokenAssetsWidget({
                     <svg viewBox="0 0 20 20" width="19" height="19" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"><circle cx="8.5" cy="8.5" r="5.5" /><path d="m13 13 4 4" /></svg>
                     <input type="search" value={searchQuery}
                       onChange={(event) => { setSearchQuery(event.target.value); setSearchSelected(null); }}
-                      onKeyDown={(event) => { if (event.key === "Escape") { setSearchOpen(false); setSearchQuery(""); setSearchResults([]); setSearchNetworkFilter("all"); } }}
+                      onKeyDown={(event) => { if (event.key === "Escape") closeSearch(); }}
                       placeholder="Search any coin, ticker, or asset name" aria-label="Search any coin across supported blockchains" autoFocus />
                     {searchQuery && <button type="button" onClick={() => { setSearchQuery(""); setSearchResults([]); setSearchSelected(null); }} aria-label="Clear search">Clear</button>}
                   </label>
@@ -1315,9 +1348,9 @@ export default function TokenAssetsWidget({
                   {searchSelected && selected && (
                     <section className="ta-search-preview" aria-label={`${selected.name} selected asset details`}>
                       <div className="ta-search-preview-header">
-                        <Logo src={selected.image} symbol={selected.symbol} size={42} />
+                        <Logo src={selected.image} symbol={selected.symbol} size={42} loading={searchLoading || (searchSelected !== null && selected.price == null)} />
                         <div className="ta-search-preview-title"><strong>{selected.name}</strong><span>{selected.symbol.toUpperCase()} · {searchSelected.networkLabel} · {searchSelected.assetKind}</span></div>
-                        <button type="button" className="ta-search-preview-dismiss" onClick={() => { setSearchSelected(null); setSelectedId(""); setChartErr(null); }}>Hide details</button>
+                        <button type="button" className="ta-search-preview-dismiss" onClick={() => { setSearchSelected(null); setSelectedId(searchReturnSelectedId.current); setChartErr(null); }}>Hide details</button>
                       </div>
                       <div className="ta-search-preview-price">
                         <strong>{fmtMoney(selected.price, currency, "price")}</strong>
@@ -1349,7 +1382,7 @@ export default function TokenAssetsWidget({
                       ) : visibleSearchResults.map((coin) => (
                         <button key={coin.resultKey} type="button" role="option" aria-selected={coin.resultKey === searchSelected?.resultKey}
                           className="ta-search-result" onClick={() => chooseSearchToken(coin)}>
-                          <Logo src={coin.thumb ?? null} symbol={coin.symbol.toUpperCase()} size={42} />
+                          <Logo src={coin.thumb ?? null} symbol={coin.symbol.toUpperCase()} size={42} loading={searchLoading} />
                           <span className="ta-search-result-copy"><b>{coin.name}</b><small>{coin.symbol.toUpperCase()} <span className="ta-search-dot">·</span> {coin.assetKind}</small><small className="ta-search-address" title={coin.contractAddress ?? "Native asset"}>{coin.contractAddress ? `${coin.contractAddress.slice(0, 8)}…${coin.contractAddress.slice(-5)}` : "Native asset · no contract"}</small></span>
                           <span className={`ta-search-network-badge ${coin.networkId}`}>{coin.networkLabel}</span><span className="ta-search-result-view" aria-hidden="true">↗</span>
                         </button>
@@ -1358,7 +1391,8 @@ export default function TokenAssetsWidget({
                   )}
                   <footer className="ta-search-page-footer">Search covers indexed assets, not every contract ever deployed. Verify the network and full contract before sending funds.</footer>
                 </section>
-              </div>
+              </div>,
+              document.body,
             )}
           </div>
         </div>
@@ -1391,15 +1425,15 @@ export default function TokenAssetsWidget({
               className={`ta-row ${a.id === selected?.id ? "is-sel" : ""}`}
               onClick={() => choose(a)}
             >
-              <Logo src={a.image} symbol={a.symbol} badge={badge} />
+              <Logo src={a.image} symbol={a.symbol} badge={badge} loading={status === "loading"} />
               <span className="ta-meta">
                 <b>{a.symbol}</b>
-                <small>{fmtMoney(a.price, currency, "price")}{a.network ? ` · ${a.network}` : ""}</small>
+                <small>{a.price == null ? (status === "loading" ? "Fetching data..." : "Price unavailable") : fmtMoney(a.price, currency, "price")}{a.network ? ` · ${a.network}` : ""}</small>
                 {a.contractAddress && <small className="ta-contract-address" title={a.contractAddress}>{`${a.contractAddress.slice(0, 7)}…${a.contractAddress.slice(-5)}`}</small>}
               </span>
               <span className="ta-nums">
                 <b>{walletConnected ? fmtAmount(a.amount) : "—"}</b>
-                <small>{walletConnected ? fmtMoney(a.value, currency, "value") : "Wallet not connected"}</small>
+                <small>{!walletConnected ? "Wallet not connected" : !Number.isFinite(a.value) ? (status === "loading" ? "Fetching data..." : "Value unavailable") : fmtMoney(a.value, currency, "value")}</small>
               </span>
             </button>
           ))}
