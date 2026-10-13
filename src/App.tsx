@@ -194,7 +194,7 @@ export default function App() {
   }
 
   if (showOpening) return <div className="startup-screen"><div className="startup-canvas"><WalletCard selectedToken={selectedToken} onTokenChange={setSelectedToken} isOpening /></div></div>;
-  if (accountLoading) return <main className="account-gate"><section className="account-gate-card"><img className="account-gate-logo loading-brand-logo" src="/subtle-pay-logo.svg" alt="Subtle Pay" /><p className="account-gate-muted">Restoring your secure account session…</p></section></main>;
+  if (accountLoading) return <main className="account-gate"><section className="account-gate-card"><p className="account-gate-muted">Restoring your secure account session…</p></section></main>;
   if (!accountProfile) return <AccountGate onAuthenticated={(profile) => {
     setAccountProfile(profile); setDisplayName(profile.displayName ?? ""); setWalletAddress(profile.walletAddress);
     setWalletChainId("0x279f"); setWalletStatus("loading"); setActivePage("wallet");
@@ -203,7 +203,7 @@ export default function App() {
   return (
     <div className="app-layout">
       <aside className="desktop-sidebar">
-        <div className="sidebar-brand"><img className="brand-logo-mark" src="/subtle-pay-mark.svg" alt="" /><span><strong>Subtle Pay</strong><small>Wallet</small></span></div>
+        
         <div className="sidebar-label">MENU</div>
         <nav className="sidebar-nav" aria-label="Main navigation">
           {[
@@ -218,10 +218,10 @@ export default function App() {
         <div className="sidebar-bottom-card"><span className="sidebar-bottom-icon"><Icon name="wallet" size={18} /></span><strong>{walletAddress ? "Wallet connected" : "Wallet disconnected"}</strong>
           <p>{walletAddress ? `${walletAddress.slice(0, 7)}…${walletAddress.slice(-5)} · ${getChainLabel(walletChainId)}` : "Sign in to load the backend-managed testnet wallet."}</p>
         </div>
-        <div className="sidebar-footer">Subtle Pay <span>Wallet</span></div>
+        
       </aside>
       <div className="workspace">
-        <header className="app-header"><span className="mobile-header-brand"><img className="brand-logo-mark" src="/subtle-pay-mark.svg" alt="" /><span><strong>Subtle Pay</strong></span></span><button type="button" className="mobile-menu-button" aria-label="Open navigation" aria-expanded={showMobileMenu} aria-controls="mobile-more-menu" onClick={() => setShowMobileMenu((open) => !open)}>
+        <header className="app-header"><button type="button" className="mobile-menu-button" aria-label="Open navigation" aria-expanded={showMobileMenu} aria-controls="mobile-more-menu" onClick={() => setShowMobileMenu((open) => !open)}>
           <svg aria-hidden="true" viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M3.5 6.5h17M3.5 12h17M3.5 17.5h17" /></svg>
         </button></header>
         {showMobileMenu && <div className="mobile-menu-backdrop" onClick={() => setShowMobileMenu(false)}><nav id="mobile-more-menu" className="mobile-menu-panel" aria-label="Navigation menu" onClick={(event) => event.stopPropagation()}>

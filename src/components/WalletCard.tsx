@@ -45,7 +45,7 @@ export default function WalletCard({
   return (
     <section className={`glass-card wallet-card ${isOpening ? "wallet-card-opening" : ""} ${walletAddress ? "" : "wallet-card-disconnected"}`} aria-label="Wallet summary">
       <div className="wallet-card-top">
-        <span className="card-brand"><img className="card-brand-mark" src="/subtle-pay-mark.svg" alt="" />Subtle Pay</span>
+        
         {token && (
           <label className="token-select-wrap">
             <span className="sr-only">Owned wallet asset</span>
