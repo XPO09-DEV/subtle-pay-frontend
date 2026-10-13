@@ -217,6 +217,7 @@ export async function getPaymentHistory(options: {
   limit?: number; before?: number; beforeId?: string; q?: string;
   status?: "pending" | "submitted" | "confirmed" | "failed";
   direction?: "in" | "out";
+  from?: number; to?: number;
 } = {}): Promise<PaymentRecord[]> {
   const query = new URLSearchParams();
   if (options.limit !== undefined) query.set("limit", String(Math.max(1, Math.min(100, Math.trunc(options.limit)))));
@@ -225,6 +226,8 @@ export async function getPaymentHistory(options: {
   if (options.q?.trim()) query.set("q", options.q.trim());
   if (options.status) query.set("status", options.status);
   if (options.direction) query.set("direction", options.direction);
+  if (options.from !== undefined) query.set("from", String(options.from));
+  if (options.to !== undefined) query.set("to", String(options.to));
   return authenticatedRequest<PaymentRecord[]>(`/payments${query.size ? `?${query.toString()}` : ""}`);
 }
 
