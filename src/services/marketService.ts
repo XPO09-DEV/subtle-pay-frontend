@@ -101,28 +101,44 @@ function makeQuote(row: Record<string, unknown>, requested: PrimaryCoinId): Mark
 }
 function historyPoints(payload: unknown): MarketPoint[] {
   const out: MarketPoint[] = [];
-  if (Array.isArray(payload)) {
-    for (const row of payload) {
-      let stamp: number | null = null;
-      let price: number | null = null;
-      if (Array.isArray(row) && row.length >= 2) {
-        stamp = Number(row[0]);
-        price = Number(row[1]);
-      } else {
-        const obj = record(row);
-        if (!obj) continue;
-        const time = obj.timestamp ?? obj.time ?? obj.date ?? obj.t;
-        stamp = typeof time === "string" && !/^\d+(\.\d+)?$/.test(time) ? Date.parse(time) : Number(time);
-        price = numberAt(obj, ["price", "value", "close", "usd", "y"]);
-      }
-      if (stamp === null || !Number.isFinite(stamp) || price === null || !Number.isFinite(price) || price <= 0) continue;
-      if (stamp < 1_000_000_000_000) stamp *= 1000;
-      out.push({ time: stamp, price });
+  const parsePoint = (row: unknown): MarketPoint | null => {
+    if (Array.isArray(row) && row.length >= 2) {
+      let time = Number(row[0]);
+      const price = Number(row[1]);
+      if (!Number.isFinite(time) || !Number.isFinite(price) || price <= 0) return null;
+      if (time < 1_000_000_000_000) time *= 1000;
+      return { time, price };
     }
-  } else {
-    for (const row of rowsFrom(payload)) out.push(...historyPoints([row]));
-  }
-  return out.sort((a, b) => a.time - b.time).filter((point, index, rows) => index === 0 || point.time > rows[index - 1].time);
+    const obj = record(row);
+    if (!obj) return null;
+    const rawTime = obj.timestamp ?? obj.time ?? obj.date ?? obj.t ?? obj.x;
+    const timeValue = typeof rawTime === "string" && !/^\d+(\.\d+)?$/.test(rawTime) ? Date.parse(rawTime) : Number(rawTime);
+    const price = numberAt(obj, ["price", "value", "close", "usd", "y", "v"]);
+    if (!Number.isFinite(timeValue) || price === null || price <= 0) return null;
+    const time = timeValue < 1_000_000_000_000 ? timeValue * 1000 : timeValue;
+    return { time, price };
+  };
+  const walk = (value: unknown, depth = 0): void => {
+    if (depth > 7 || value == null) return;
+    if (Array.isArray(value)) {
+      const point = parsePoint(value);
+      if (point) { out.push(point); return; }
+      for (const item of value) walk(item, depth + 1);
+      return;
+    }
+    const point = parsePoint(value);
+    if (point) { out.push(point); return; }
+    const obj = record(value);
+    if (!obj) return;
+    for (const [key, nested] of Object.entries(obj)) {
+      if (["chart", "charts", "history", "prices", "result", "data", "items", "points", "priceHistory"].includes(key)) {
+        walk(nested, depth + 1);
+      }
+    }
+  };
+  walk(payload);
+  return out.sort((a, b) => a.time - b.time)
+    .filter((point, index, rows) => index === 0 || point.time > rows[index - 1].time);
 }
 const COINS: PrimaryCoinId[] = ["tether", "usd-coin", "monad"];
 
