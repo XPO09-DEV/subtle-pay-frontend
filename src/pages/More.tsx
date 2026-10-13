@@ -6,6 +6,7 @@ import {
   changeAccountPassword,
   deleteAccount,
   enableMerchantProfile,
+  getAccountLoginHistory,
   getAccountProfile,
   getAccountSessions,
   getMerchantAutopayApplications,
@@ -18,6 +19,7 @@ import {
   updateAccountCurrency,
   updateAccountProfile,
   type ActiveAccountSession,
+  type LoginHistoryEvent,
   type MerchantAutopayApplication,
   type MerchantProfile,
 } from "../services/accountService";
@@ -70,6 +72,7 @@ export default function More({
   const [pin, setPin] = useState("");
   const [mpinEnabled, setMpinEnabled] = useState(false);
   const [sessions, setSessions] = useState<ActiveAccountSession[]>([]);
+  const [loginHistory, setLoginHistory] = useState<LoginHistoryEvent[]>([]);
   const [merchant, setMerchant] = useState<MerchantProfile | null>(null);
   const [merchantEnabled, setMerchantEnabled] = useState(false);
   const [merchantName, setMerchantName] = useState(profile?.displayName ?? "");
@@ -93,6 +96,7 @@ export default function More({
     void getSupportedCurrencies().then((items) => { if (alive && items.length) setCurrencies(items); }).catch(() => undefined);
     void getMpinStatus().then((value) => { if (alive) setMpinEnabled(value.enabled); }).catch(() => undefined);
     void getAccountSessions().then((items) => { if (alive) setSessions(items); }).catch(() => undefined);
+    void getAccountLoginHistory(20).then((items) => { if (alive) setLoginHistory(items); }).catch(() => undefined);
     void getMerchantProfile().then((value) => { if (alive) { setMerchantEnabled(value.enabled); setMerchant(value.profile); } }).catch(() => undefined);
     void getMerchantAutopayApplications().then((items) => { if (alive) setApplications(items); }).catch(() => undefined);
     return () => { alive = false; };
@@ -303,6 +307,17 @@ export default function More({
           <div className="more-session-copy"><strong>{session.current ? "This session" : "Signed-in session"}</strong><small>{session.userAgent || "Browser/device not reported"}</small><small>{session.ip || "IP not reported"} · Last activity {time(session.lastSeenAt)}</small><small>Expires {time(session.expiresAt)}</small></div>
           {session.current ? <span className="status-pill neutral">Current</span> : <button type="button" className="secondary-button" onClick={() => void revokeSession(session)} disabled={Boolean(busy)}>Revoke</button>}
         </article>)}</div>}
+      </section>
+
+      <section className="panel more-settings-card">
+        <div className="panel-heading compact"><div><div className="section-kicker">RECENT ACCESS</div><h2>Login history</h2></div><Icon name="clock" size={20} /></div>
+        <p className="more-helper">Recent login events for this account. Failed attempts before the account is identified may not be linked to this history.</p>
+        {loginHistory.length === 0 ? <p className="more-empty-copy">No login events are available yet.</p> : <div className="more-login-list">
+          {loginHistory.map((event) => <article key={event.id}>
+            <span className={event.success ? "more-login-icon success" : "more-login-icon failed"}><Icon name={event.success ? "check-circle" : "alert"} size={17} /></span>
+            <div><strong>{event.success ? "Successful login" : "Failed login"}</strong><small>{time(event.eventAt)} · {event.reason.replaceAll("_", " ")}</small><small>{event.ip || "IP not recorded"}</small><small>{event.userAgent || "Browser not recorded"}</small></div>
+          </article>)}
+        </div>}
       </section>
 
       <section className="panel more-settings-card">
