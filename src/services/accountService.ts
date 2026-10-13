@@ -282,6 +282,17 @@ export async function getAccountSessions(): Promise<ActiveAccountSession[]> {
   const response = await authenticatedRequest<{ sessions: ActiveAccountSession[] }>("/me/sessions");
   return response.sessions;
 }
+export interface LoginHistoryEvent {
+  id: string; success: boolean; reason: string; ip: string | null; userAgent: string | null;
+  requestId: string | null; eventAt: number;
+}
+export async function getAccountLoginHistory(limit = 20): Promise<LoginHistoryEvent[]> {
+  const response = await authenticatedRequest<{ events: LoginHistoryEvent[] }>(
+    "/me/login-events?limit=" + String(Math.max(1, Math.min(50, Math.trunc(limit))))
+  );
+  return response.events;
+}
+
 export async function revokeAccountSession(sessionId: string): Promise<void> {
   await authenticatedRequest("/me/sessions/" + encodeURIComponent(sessionId), { method: "DELETE" });
 }
