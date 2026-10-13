@@ -305,8 +305,19 @@ export async function setAccountMpin(currentPassword: string, pin: string): Prom
 export async function removeAccountMpin(currentPassword: string): Promise<{ enabled: boolean }> {
   return authenticatedRequest("/auth/mpin", { method: "DELETE", body: JSON.stringify({ currentPassword }) });
 }
-export async function authorizePayment(method: "password" | "mpin", secret: string): Promise<{ authorizationToken: string; expiresIn: number }> {
-  return authenticatedRequest("/auth/payment-authorization", { method: "POST", body: JSON.stringify({ method, secret }) });
+export type PaymentAuthorizationIntent = {
+  to: string;
+  amount: string | number;
+  amountCurrency: "USD" | "INR";
+  note?: string;
+  asset?: "MON";
+};
+export async function authorizePayment(
+  method: "password" | "mpin",
+  secret: string,
+  intent?: PaymentAuthorizationIntent
+): Promise<{ authorizationToken: string; expiresIn: number }> {
+  return authenticatedRequest("/auth/payment-authorization", { method: "POST", body: JSON.stringify({ method, secret, ...(intent ? { intent } : {}) }) });
 }
 export async function changeAccountPassword(oldPassword: string, newPassword: string): Promise<{ ok: boolean }> {
   return authenticatedRequest("/auth/change-password", { method: "POST", body: JSON.stringify({ oldPassword, newPassword }) });
