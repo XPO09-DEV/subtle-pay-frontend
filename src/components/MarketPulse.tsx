@@ -130,6 +130,8 @@ function PriceLine({ history, period }: { history: MarketHistory; period: Market
   const selectedIndex = hover == null ? points.length - 1 : Math.max(0, Math.min(hover, points.length - 1));
   const selectedPoint = points[selectedIndex];
   const firstPoint = points[0];
+  const latestPoint = points[points.length - 1];
+  const trendUp = latestPoint.price >= firstPoint.price;
   const selectedCoordinate = geometry?.coordinates[selectedIndex] ?? null;
   const periodChange = firstPoint.price
     ? ((selectedPoint.price - firstPoint.price) / firstPoint.price) * 100
@@ -149,7 +151,7 @@ function PriceLine({ history, period }: { history: MarketHistory; period: Market
       </div>
       <div
         ref={wrapRef}
-        className="ta-chart"
+        className={`ta-chart ${trendUp ? "is-up" : "is-down"}`}
         onPointerMove={move}
         onPointerDown={move}
         onPointerLeave={() => setHover(null)}
@@ -160,8 +162,8 @@ function PriceLine({ history, period }: { history: MarketHistory; period: Market
           <svg width={width} height={CHART_HEIGHT} viewBox={`0 0 ${width} ${CHART_HEIGHT}`} role="img" aria-label={`Historical price chart with ${history.points.length} real market data points`}>
             <defs>
               <linearGradient id={`g${gradientId}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0" stopColor="#4285F4" stopOpacity=".24" />
-                <stop offset="1" stopColor="#4285F4" stopOpacity="0" />
+                <stop offset="0" stopColor="currentColor" stopOpacity=".24" />
+                <stop offset="1" stopColor="currentColor" stopOpacity="0" />
               </linearGradient>
             </defs>
             {[0.25, 0.5, 0.75].map((fraction) => (
@@ -169,18 +171,18 @@ function PriceLine({ history, period }: { history: MarketHistory; period: Market
             ))}
             <g key={`${period}-${points[0].time}-${points[points.length - 1].time}`}>
               <path d={geometry.area} fill={`url(#g${gradientId})`} className="ta-area" />
-              <path d={geometry.line} fill="none" stroke="#4285F4" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" pathLength={1} className="ta-line" />
+              <path d={geometry.line} fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" pathLength={1} className="ta-line" />
             </g>
             {selectedCoordinate && hover != null ? (
               <>
                 <line x1={selectedCoordinate[0]} x2={selectedCoordinate[0]} y1="0" y2={CHART_HEIGHT} className="ta-cross" />
-                <circle cx={selectedCoordinate[0]} cy={selectedCoordinate[1]} r="8" fill="#4285F4" opacity=".16" />
-                <circle cx={selectedCoordinate[0]} cy={selectedCoordinate[1]} r="4.5" fill="#4285F4" stroke="#fff" strokeWidth="2" />
+                <circle cx={selectedCoordinate[0]} cy={selectedCoordinate[1]} r="8" fill="currentColor" opacity=".16" />
+                <circle cx={selectedCoordinate[0]} cy={selectedCoordinate[1]} r="4.5" fill="currentColor" stroke="#fff" strokeWidth="2" />
               </>
             ) : geometry ? (
               <>
-                <circle cx={geometry.last[0]} cy={geometry.last[1]} r="4" fill="#4285F4" className="ta-pulse" />
-                <circle cx={geometry.last[0]} cy={geometry.last[1]} r="4.5" fill="#4285F4" stroke="#fff" strokeWidth="2" />
+                <circle cx={geometry.last[0]} cy={geometry.last[1]} r="4" fill="currentColor" className="ta-pulse" />
+                <circle cx={geometry.last[0]} cy={geometry.last[1]} r="4.5" fill="currentColor" stroke="#fff" strokeWidth="2" />
               </>
             ) : null}
           </svg>
@@ -194,7 +196,7 @@ function PriceLine({ history, period }: { history: MarketHistory; period: Market
   );
 }
 
-export default function MarketPulse() {
+export default function MarketPulse({ onQuotesChange }: { onQuotesChange?: (quotes: MarketQuote[]) => void } = {}) {
   const [quotes, setQuotes] = useState<MarketQuote[]>([]);
   const [quotesBusy, setQuotesBusy] = useState(true);
   const [quotesError, setQuotesError] = useState("");
@@ -212,6 +214,7 @@ export default function MarketPulse() {
         const latest = await getPrimaryMarketQuotes();
         if (!alive) return;
         setQuotes(latest);
+        onQuotesChange?.(latest);
         setQuotesError(latest.length ? "" : "The market-data provider did not return USDT, USDC or MON quotes.");
       } catch (error) {
         if (!alive) return;
@@ -230,32 +233,55 @@ export default function MarketPulse() {
       window.removeEventListener("focus", onVisible);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, []);
+  }, [onQuotesChange]);
 
   const selected = quotes.find((coin) => coin.key === activeCoin);
   const changeNegative = (selected?.change24h ?? 0) < 0;
   useEffect(() => {
     let alive = true;
+    let refreshing = false;
+    const loadHistory = async () => {
+      if (!selected || refreshing) return;
+      refreshing = true;
+      setHistoryBusy(true);
+      setHistoryError("");
+      try {
+        const value = await getPrimaryMarketHistory(selected.id, period);
+        if (alive) setHistory(value);
+      } catch (error: unknown) {
+        if (alive) setHistoryError(error instanceof Error ? error.message : "Historical prices are unavailable.");
+      } finally {
+        refreshing = false;
+        if (alive) setHistoryBusy(false);
+      }
+    };
     setHistory(null);
-    setHistoryError("");
     if (!selected) {
       setHistoryBusy(false);
       return () => { alive = false; };
     }
-    setHistoryBusy(true);
-    void getPrimaryMarketHistory(selected.id, period).then((value) => {
-      if (alive) setHistory(value);
-    }).catch((error: unknown) => {
-      if (alive) setHistoryError(error instanceof Error ? error.message : "Historical prices are unavailable.");
-    }).finally(() => { if (alive) setHistoryBusy(false); });
-    return () => { alive = false; };
+    void loadHistory();
+    const timer = window.setInterval(() => {
+      if (!document.hidden && navigator.onLine) void loadHistory();
+    }, 60_000);
+    const onVisible = () => {
+      if (!document.hidden && navigator.onLine) void loadHistory();
+    };
+    window.addEventListener("focus", onVisible);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      alive = false;
+      window.clearInterval(timer);
+      window.removeEventListener("focus", onVisible);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [selected?.id, period]);
 
   return (
     <section className="panel market-pulse" aria-label="Primary coin prices and market history">
       <div className="panel-heading market-pulse-heading">
         <div><div className="section-kicker">MARKET WATCH</div><h2>Primary coin prices</h2><p>USDT · USDC · MON · updates every minute</p></div>
-        <span className={quotesError ? "market-source-badge offline" : "market-source-badge"}><span />{quotesError ? "Feed unavailable" : quotesBusy ? "Connecting" : "CoinStats API"}</span>
+        <span className={quotesError ? "market-source-badge offline" : "market-source-badge"}><span />{quotesError ? "Unavailable" : quotesBusy ? "Refreshing" : "Live prices · 60s"}</span>
       </div>
       <div className="market-primary-grid">
         {COINS.map((coin) => {
@@ -263,7 +289,7 @@ export default function MarketPulse() {
           const active = activeCoin === coin.key;
           return (
             <button type="button" key={coin.key} className={active ? "market-primary-card active" : "market-primary-card"} onClick={() => setActiveCoin(coin.key)} aria-pressed={active}>
-              <span className={"market-coin-mark " + coin.symbol.toLowerCase()}>{coin.symbol.slice(0, 1)}</span>
+              <span className={"market-coin-mark " + coin.symbol.toLowerCase()}>{quote?.image ? <><span className="market-coin-fallback">{coin.symbol.slice(0, 1)}</span><img src={quote.image} alt="" loading="lazy" onError={(event) => { event.currentTarget.style.display = "none"; }} /></> : coin.symbol.slice(0, 1)}</span>
               <span className="market-primary-copy"><strong>{coin.symbol}</strong><small>{coin.name}</small></span>
               <span className="market-primary-price">{quote ? money(quote.price) : quotesBusy ? "Loading…" : "Unavailable"}
                 {quote?.change24h != null && <small className={quote.change24h >= 0 ? "up" : "down"}>{quote.change24h >= 0 ? "+" : ""}{quote.change24h.toFixed(2)}%</small>}
