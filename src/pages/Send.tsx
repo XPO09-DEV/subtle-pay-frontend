@@ -4,7 +4,9 @@ import Icon from "../components/Icon";
 import QRScanner from "../components/QRScanner";
 
 import {
+  authorizePayment,
   getAccountRates,
+  getMpinStatus,
   submitAccountPayment,
   type SendPaymentResult,
 
@@ -93,6 +95,11 @@ export default function Send({
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<SendPaymentResult | null>(null);
+  const [mpinEnabled, setMpinEnabled] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
+  const [authMethod, setAuthMethod] = useState<"password" | "mpin">("password");
+  const [authSecret, setAuthSecret] = useState("");
+  const [authError, setAuthError] = useState("");
 
   // Keep the recipient synchronized with navigation into this page.
   useEffect(() => {
@@ -103,6 +110,14 @@ export default function Send({
       setScanNotice("");
     }
   }, [initialRecipient]);
+
+  useEffect(() => {
+    let alive = true;
+    void getMpinStatus().then((value) => { if (alive) setMpinEnabled(value.enabled); }).catch(() => {
+      if (alive) setMpinEnabled(false);
+    });
+    return () => { alive = false; };
+  }, []);
 
   // Fetch the current quote whenever the selected currency changes.
   useEffect(() => {
@@ -181,59 +196,60 @@ export default function Send({
           : amountNumber) / rates.tokenUsd
       : null;
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
+  function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
     setNotice("");
     setResult(null);
+    setAuthError("");
+    setAuthSecret("");
 
     if (!walletAddress) {
-      setNotice(
-        "Your Subtle Pay account wallet is unavailable. Sign in again before sending."
-      );
+      setNotice("Your Subtle Pay account wallet is unavailable. Sign in again before sending.");
       return;
     }
-
     if (!recipient.trim()) {
-      setNotice(
-        "Enter a recipient account ID, Subtle Pay handle, or EVM address."
-      );
+      setNotice("Enter a recipient account ID, Subtle Pay handle, or EVM address.");
       return;
     }
-
     if (!validAmount) {
       setNotice("Enter an amount greater than zero.");
       return;
     }
-
     if (!rates || ratesError) {
-      setNotice(
-        "A live quote is unavailable. No payment was sent; retry when the rate service is available."
-      );
+      setNotice("A live quote is unavailable. No payment was sent; retry when the rate service is available.");
       return;
     }
 
-    setBusy(true);
+    setAuthMethod(mpinEnabled ? "mpin" : "password");
+    setAuthOpen(true);
+  }
 
+  async function authorizeAndSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!authSecret) {
+      setAuthError(authMethod === "mpin" ? "Enter your six-digit MPIN." : "Enter your account password.");
+      return;
+    }
+    setBusy(true);
+    setAuthError("");
+    setNotice("");
     try {
+      const authorization = await authorizePayment(authMethod, authSecret);
       const payment = await submitAccountPayment({
         to: recipient.trim(),
         amount,
         amountCurrency: currency,
         note: note.trim() || undefined,
         asset: "MON",
+        authorizationToken: authorization.authorizationToken,
       });
-
       setResult(payment);
       setNotice(statusCopy(payment.status));
-
+      setAuthOpen(false);
+      setAuthSecret("");
       onTransactionSubmitted?.();
     } catch (error: unknown) {
-      setNotice(
-        error instanceof Error
-          ? error.message
-          : "Payment failed. No success has been assumed."
-      );
+      setAuthError(error instanceof Error ? error.message : "Payment authorization or submission failed.");
     } finally {
       setBusy(false);
     }
@@ -482,23 +498,53 @@ export default function Send({
         </form>
       </section>
 
+      {authOpen && (
+        <section className="panel payment-auth-panel" aria-labelledby="payment-auth-title">
+          <div className="panel-heading compact">
+            <div><div className="section-kicker">PAYMENT SECURITY</div><h2 id="payment-auth-title">Authorize payment</h2></div>
+            <span className="status-pill neutral">One-time</span>
+          </div>
+          <p>Confirm this payment with one required factor. Authorization expires after two minutes and can only be used once.</p>
+          <div className="payment-auth-summary">
+            <span>To <strong>{recipient.trim()}</strong></span>
+            <span>Amount <strong>{amount || "0.00"} {currency}</strong></span>
+            <span>Settlement <strong>Native MON · Monad Testnet</strong></span>
+          </div>
+          <div className="payment-auth-methods" role="group" aria-label="Payment authorization method">
+            {mpinEnabled && <button type="button" className={authMethod === "mpin" ? "selected" : ""} onClick={() => { setAuthMethod("mpin"); setAuthSecret(""); setAuthError(""); }}>6-digit MPIN</button>}
+            <button type="button" className={authMethod === "password" ? "selected" : ""} onClick={() => { setAuthMethod("password"); setAuthSecret(""); setAuthError(""); }}>Account password</button>
+          </div>
+          <form onSubmit={(event) => void authorizeAndSubmit(event)}>
+            <label className="field-label" htmlFor="payment-auth-secret">{authMethod === "mpin" ? "Enter your six-digit MPIN" : "Enter your account password"}</label>
+            <input
+              id="payment-auth-secret"
+              className="form-input"
+              type={authMethod === "mpin" ? "password" : "password"}
+              inputMode={authMethod === "mpin" ? "numeric" : undefined}
+              autoComplete={authMethod === "mpin" ? "one-time-code" : "current-password"}
+              maxLength={authMethod === "mpin" ? 6 : 128}
+              value={authSecret}
+              onChange={(event) => { setAuthSecret(authMethod === "mpin" ? event.target.value.replace(/\D/g, "").slice(0, 6) : event.target.value); setAuthError(""); }}
+              required
+            />
+            {authError && <p className="inline-notice" role="alert">{authError}</p>}
+            <div className="payment-auth-actions">
+              <button type="button" className="secondary-button" disabled={busy} onClick={() => { setAuthOpen(false); setAuthSecret(""); setAuthError(""); }}>Cancel</button>
+              <button type="submit" className="primary-button" disabled={busy || !authSecret || (authMethod === "mpin" && authSecret.length !== 6)}>
+                {busy ? "Authorizing…" : "Authorize & send"}
+              </button>
+            </div>
+          </form>
+          <p className="tiny-note">Device biometrics are not enabled in this build. Use MPIN or password until passkey enrollment is implemented.</p>
+        </section>
+      )}
+
       {notice && (
         <div
-          className={
-            result?.status === "confirmed"
-              ? "inline-notice success"
-              : "inline-notice"
-          }
+          className={result?.status === "confirmed" ? "inline-notice success" : "inline-notice"}
           role="status"
         >
-          <Icon
-            name={
-              result?.status === "confirmed"
-                ? "check-circle"
-                : "info"
-            }
-            size={16}
-          />
+          <Icon name={result?.status === "confirmed" ? "check-circle" : "info"} size={16} />
           <span>{notice}</span>
         </div>
       )}
