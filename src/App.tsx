@@ -17,7 +17,7 @@ type WalletStatus = "disconnected" | "connecting" | "loading" | "ready" | "error
 
 /** Merge the authenticated Monad Testnet balance with optional indexed public-chain holdings. */
 async function fetchAccountWalletAssets(address: string, force = false): Promise<WalletAsset[]> {
-  const home = await getAccountHome();
+  const home = await getAccountHome(force);
   if (home.address.toLowerCase() !== address.toLowerCase()) {
     throw new Error("The authenticated account wallet did not match the requested address. Refresh your session.");
   }
@@ -386,10 +386,12 @@ export default function App() {
             walletAddress={walletAddress}
             walletChainId={walletChainId}
             displayName={displayName}
+            handle={accountProfile.alias}
+            chainId={10143}
             onConnectWallet={connectWallet}
           />}
           {activePage === "merchant" && <Merchant />}
-          {activePage === "more" && <More accountId={accountProfile.accountId} walletAddress={walletAddress} onLogout={disconnectWallet} />}
+          {activePage === "more" && <More accountId={accountProfile.accountId} walletAddress={walletAddress} currency={accountProfile.currency} onLogout={disconnectWallet} />}
           {activePage === "activity" && <Activity />}
           {activePage === "notifications" && <Notifications />}
         </main>

@@ -8,6 +8,8 @@ const CONFIGURED_BASE = (
 
 type SessionResponse = {
   token: string;
+  /** Compatibility only: the backend never returns refresh tokens to JavaScript. */
+  refreshToken?: string;
   expiresIn: number;
   accountId?: string;
   address?: string;
