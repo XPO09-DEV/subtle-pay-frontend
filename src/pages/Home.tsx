@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 import { api } from "../api/client";
 import type { HomeData, Payment } from "../types/api";
@@ -7,6 +8,7 @@ import BottomNav from "../components/BottomNav";
 import TransactionItem from "../components/TransactionItem";
 
 export default function Home() {
+  const navigate = useNavigate();
   const [home, setHome] = useState<HomeData | null>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [error, setError] = useState("");
@@ -45,7 +47,7 @@ export default function Home() {
       {payments.slice(0, 3).map((transaction) => (
         <TransactionItem key={transaction.id} tx={transaction} currency={home?.currency} />
       ))}
-      <BottomNav />
+      <BottomNav active="wallet" onNavigate={(page) => navigate(page === "wallet" ? "/" : `/${page}`)} />
     </div>
   );
 }
