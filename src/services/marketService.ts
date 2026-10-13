@@ -26,13 +26,14 @@ async function json(path: string): Promise<unknown> {
   try {
     response = await fetch(apiUrl(path), { headers: { accept: "application/json" }, cache: "no-store", signal: AbortSignal.timeout(12_000) });
   } catch {
-    throw new Error("Market data is unreachable. Check the backend and CoinStats API configuration.");
+    throw new Error("Market data is unreachable. Check your connection and try again.");
   }
   if (!response.ok) {
     let message = "Market data is temporarily unavailable.";
     try {
       const body = await response.json() as { error?: { message?: string }; message?: string };
-      message = body.error?.message ?? body.message ?? message;
+      const serverMessage = body.error?.message ?? body.message;
+      message = serverMessage && !/coinstats/i.test(serverMessage) ? serverMessage : "Market data is temporarily unavailable. Try again shortly.";
     } catch { /* the provider may return a non-JSON error */ }
     throw new Error(message);
   }
