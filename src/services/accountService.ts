@@ -326,3 +326,40 @@ export async function verifyPaymentQrPayload(payload: string): Promise<VerifiedP
     body: JSON.stringify({ payload }),
   }, false);
 }
+
+export interface AccountNotification {
+  id: string;
+  transactionId: string;
+  type: "payment_submitted" | "payment_confirmed" | "payment_failed" | string;
+  title: string;
+  message: string;
+  createdAt: string;
+  readAt: string | null;
+}
+
+export interface NotificationPage {
+  items: AccountNotification[];
+  total: number;
+  unreadCount: number;
+  limit: number;
+  offset: number;
+  nextOffset: number | null;
+  updatedAt: string;
+}
+
+export async function getNotifications(options: { limit?: number; offset?: number; unreadOnly?: boolean } = {}): Promise<NotificationPage> {
+  const params = new URLSearchParams({
+    limit: String(options.limit ?? 50),
+    offset: String(options.offset ?? 0),
+    unreadOnly: String(options.unreadOnly ?? false),
+  });
+  return authenticatedRequest<NotificationPage>(`/notifications?${params.toString()}`);
+}
+
+export async function markNotificationRead(id: string): Promise<{ ok: boolean; readAt: string }> {
+  return authenticatedRequest<{ ok: boolean; readAt: string }>(`/notifications/${encodeURIComponent(id)}/read`, { method: "POST" });
+}
+
+export async function markAllNotificationsRead(): Promise<{ ok: boolean; updated: number; readAt: string }> {
+  return authenticatedRequest<{ ok: boolean; updated: number; readAt: string }>("/notifications/read-all", { method: "POST" });
+}
