@@ -1,10 +1,10 @@
+import { useEffect, useState } from "react";
 import type { WalletAsset } from "../services/walletService";
-import type { MarketQuote, PrimaryCoinId } from "../services/marketService";
+import { getPrimaryMarketQuotes, type MarketQuote, type PrimaryCoinId } from "../services/marketService";
 
 export interface TokenAssetsWidgetProps {
   holdings?: WalletAsset[];
   walletConnected?: boolean;
-  marketQuotes?: MarketQuote[];
   className?: string;
 }
 
@@ -18,7 +18,35 @@ const fmtPrice = (amount: number) => new Intl.NumberFormat("en-US", {
   style: "currency", currency: "USD", maximumFractionDigits: amount < 1 ? 6 : amount < 100 ? 4 : 2,
 }).format(amount);
 
-export default function TokenAssetsWidget({ holdings = [], walletConnected = false, marketQuotes = [], className = "" }: TokenAssetsWidgetProps) {
+export default function TokenAssetsWidget({ holdings = [], walletConnected = false, className = "" }: TokenAssetsWidgetProps) {
+  const [marketQuotes, setMarketQuotes] = useState<MarketQuote[]>([]);
+  useEffect(() => {
+    let alive = true;
+    let requestInFlight = false;
+    const refresh = async () => {
+      if (requestInFlight || document.hidden || !navigator.onLine) return;
+      requestInFlight = true;
+      try {
+        const quotes = await getPrimaryMarketQuotes();
+        if (alive) setMarketQuotes(quotes);
+      } catch {
+        // Keep the last provider-backed quotes visible during brief outages.
+      } finally {
+        requestInFlight = false;
+      }
+    };
+    void refresh();
+    const timer = window.setInterval(() => void refresh(), 60_000);
+    const onVisible = () => { if (!document.hidden) void refresh(); };
+    window.addEventListener("focus", onVisible);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      alive = false;
+      window.clearInterval(timer);
+      window.removeEventListener("focus", onVisible);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, []);
   const nativeMon = holdings.filter((item) => item.tokenSymbol?.toUpperCase() === "MON"
     && !item.contractAddress
     && item.chainLabel.toLowerCase().includes("monad testnet"));
