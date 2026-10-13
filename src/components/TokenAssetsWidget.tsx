@@ -1210,7 +1210,7 @@ export default function TokenAssetsWidget({
                         </button>
                       ))}
                     </div>
-                    <p className="ta-currency-menu-note">Set your default in More > Privacy & preferences > Currency preference.</p>
+                    <p className="ta-currency-menu-note">Set your default in More &gt; Privacy &amp; preferences &gt; Currency preference.</p>
                   </div>
                 )}
               </div>
