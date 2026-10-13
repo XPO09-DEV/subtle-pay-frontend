@@ -155,6 +155,16 @@ export default function App() {
   }, [walletAddress]);
 
   useEffect(() => {
+    const syncCurrency = (event: Event) => {
+      const code = (event as CustomEvent<string>).detail;
+      if (!code) return;
+      setAccountProfile((current) => current ? { ...current, currency: code.toUpperCase() } : current);
+    };
+    window.addEventListener("subtlepay:default-currency", syncCurrency);
+    return () => window.removeEventListener("subtlepay:default-currency", syncCurrency);
+  }, []);
+
+  useEffect(() => {
     let alive = true;
     void restoreAccountSession().then((profile) => {
       if (!alive) return;

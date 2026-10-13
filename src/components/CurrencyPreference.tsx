@@ -1,18 +1,27 @@
 import { useState, type ChangeEvent } from "react";
+import { setAccountCurrency } from "../services/accountService";
 import { CURRENCIES, DEFAULT_CURRENCY_KEY, readDefaultCurrency } from "../data/currencies";
 import "./CurrencyPreference.css";
 
-export default function CurrencyPreference() {
-  const [currency, setCurrency] = useState(readDefaultCurrency);
+export default function CurrencyPreference({ initialCurrency }: { initialCurrency?: string }) {
+  const [currency, setCurrency] = useState(() => (initialCurrency || readDefaultCurrency()).toLowerCase());
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
-  function saveDefault() {
+  async function saveDefault() {
+    setSaving(true);
+    setError("");
     try {
+      await setAccountCurrency(currency);
       window.localStorage.setItem(DEFAULT_CURRENCY_KEY, currency);
       window.dispatchEvent(new CustomEvent("subtlepay:default-currency", { detail: currency }));
       setSaved(true);
-    } catch {
+    } catch (cause) {
       setSaved(false);
+      setError(cause instanceof Error ? cause.message : "Could not save currency preference.");
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -31,9 +40,10 @@ export default function CurrencyPreference() {
           <option key={option.code} value={option.code}>{option.symbol}  {option.code.toUpperCase()} — {option.name}</option>
         ))}
       </select>
-      <button type="button" className="currency-pref-save" onClick={saveDefault}>Save default currency</button>
+      <button type="button" className="currency-pref-save" onClick={() => void saveDefault()} disabled={saving}>{saving ? "Saving…" : "Save default currency"}</button>
+      {error && <p className="currency-pref-feedback" role="alert">{error}</p>}
       <p className={saved ? "currency-pref-feedback saved" : "currency-pref-feedback"} role="status">
-        {saved ? `Default currency saved as ${currency.toUpperCase()}.` : "This preference is saved on this device."}
+        {saved ? `Default currency saved as ${currency.toUpperCase()}.` : "Your preference is synced to your Subtle Pay account."}
       </p>
     </section>
   );

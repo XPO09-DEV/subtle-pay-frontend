@@ -72,13 +72,12 @@ const BALANCE_CACHE_TTL = 60_000;
 const balanceCache = new Map<string, { savedAt: number; assets: WalletAsset[] }>();
 
 export function getBackendApiBaseUrl(): string {
-  if (API_BASE_URL) return API_BASE_URL;
-  if (typeof window === "undefined") return "";
-  // Vite dev server and the Fastify API use separate local ports by default.
-  if (["localhost", "127.0.0.1"].includes(window.location.hostname) && window.location.port === "5173") {
-    return `${window.location.protocol}//${window.location.hostname}:4000`;
-  }
-  return window.location.origin;
+  if (typeof window === "undefined") return API_BASE_URL;
+  // A forwarded Vite URL belongs to the remote browser; its localhost is not this API.
+  // Prefer same-origin requests so Vite's development proxy works for tunnel users.
+  const isLocalBrowser = ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
+  if (!isLocalBrowser) return window.location.origin;
+  return API_BASE_URL || window.location.origin;
 }
 
 export const SUPPORTED_EVM_NETWORKS = [

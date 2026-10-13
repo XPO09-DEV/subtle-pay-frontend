@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import jsQR from "jsqr";
 import { parsePayQR, type ScannedRecipient } from "../utils/qr";
+import { verifyPaymentQrPayload } from "../services/accountService";
 
 type Props = {
   onScan: (result: ScannedRecipient) => void;
@@ -13,20 +14,33 @@ export default function QRScanner({ onScan, onClose }: Props) {
   const [error, setError] = useState("");
   const [hint, setHint] = useState("");
 
-  function handleText(text: string) {
-  const parsed = parsePayQR(text);
-  if (parsed) {
-    onScan(parsed);
-    return true;
+  async function handleText(text: string): Promise<boolean> {
+    const parsed = parsePayQR(text);
+    if (!parsed) {
+      setHint("This is not a valid Subtle Pay payment QR or wallet address.");
+      return false;
+    }
+    try {
+      const recipient = parsed.signedPayload
+        ? await verifyPaymentQrPayload(parsed.signedPayload)
+        : parsed;
+      if (recipient.chainId && recipient.chainId !== 10143) {
+        setHint("This QR is not for Monad Testnet (chain ID 10143). No recipient was selected.");
+        return false;
+      }
+      onScan(recipient);
+      return true;
+    } catch {
+      setHint("This payment QR could not be verified. Ask the recipient to generate a new QR in Subtle Pay.");
+      return false;
+    }
   }
-  setHint("This is not a payment QR code we can read.");
-  return false;
-}
 
   useEffect(() => {
     let stream: MediaStream | null = null;
     let frame = 0;
     let stopped = false;
+    let verifying = false;
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d", { willReadFrequently: true });
 
@@ -66,7 +80,16 @@ export default function QRScanner({ onScan, onClose }: Props) {
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const code = jsQR(img.data, img.width, img.height, { inversionAttempts: "dontInvert" });
-        if (code?.data && handleText(code.data)) return;
+        if (code?.data && !verifying) {
+          verifying = true;
+          void handleText(code.data).then((handled) => {
+            if (!handled && !stopped) {
+              verifying = false;
+              frame = requestAnimationFrame(tick);
+            }
+          });
+          return;
+        }
       }
       frame = requestAnimationFrame(tick);
     }
@@ -96,7 +119,7 @@ export default function QRScanner({ onScan, onClose }: Props) {
       const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const code = jsQR(img.data, img.width, img.height);
       if (!code) setHint("No QR code found in that picture");
-      else handleText(code.data);
+      else await handleText(code.data);
     } catch {
       setHint("Could not read that picture");
     }

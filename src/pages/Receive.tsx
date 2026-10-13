@@ -1,6 +1,8 @@
 import { useState } from "react";
 import Icon from "../components/Icon";
 import { copyText } from "../services/walletService";
+import { getPersonalPaymentQr } from "../services/accountService";
+import QRCodeModal from "../components/QRCodeModal";
 
 export default function Receive({
   walletAddress = null,
@@ -12,6 +14,25 @@ export default function Receive({
   onConnectWallet?: () => void;
 }) {
   const [notice, setNotice] = useState("");
+  const [showQr, setShowQr] = useState(false);
+  const [qrPayload, setQrPayload] = useState<string | null>(null);
+  const [qrLoading, setQrLoading] = useState(false);
+
+  async function openQr() {
+    setShowQr(true);
+    setQrPayload(null);
+    setQrLoading(true);
+    setNotice("");
+    try {
+      const result = await getPersonalPaymentQr();
+      setQrPayload(result.payload);
+    } catch (cause) {
+      setShowQr(false);
+      setNotice(cause instanceof Error ? cause.message : "Could not generate a verified payment QR.");
+    } finally {
+      setQrLoading(false);
+    }
+  }
 
   async function copyAddress() {
     if (!walletAddress) { setNotice("Account wallet address is not available. Sign in again."); return; }

@@ -220,8 +220,8 @@ export interface SendPaymentResult {
   txHash: string;
 }
 
-export async function getAccountHome(): Promise<AccountHome> {
-  return authenticatedRequest<AccountHome>("/home");
+export async function getAccountHome(force = false): Promise<AccountHome> {
+  return authenticatedRequest<AccountHome>(force ? "/home?refresh=true" : "/home");
 }
 
 export async function submitAccountPayment(input: SendPaymentInput): Promise<SendPaymentResult> {
@@ -239,6 +239,71 @@ export async function getPaymentHistory(): Promise<PaymentRecord[]> {
   return authenticatedRequest<PaymentRecord[]>("/payments");
 }
 
+export interface SavedContact {
+  name: string;
+  accountId: string | null;
+  address: string | null;
+  createdAt: number;
+}
+
+export async function getSavedContacts(): Promise<SavedContact[]> {
+  return authenticatedRequest<SavedContact[]>("/contacts");
+}
+
+/** Saves only a Subtle Pay account ID, @alias, or EVM address on the backend. */
+export async function saveSavedContact(name: string, recipient: string): Promise<Omit<SavedContact, "createdAt">> {
+  const value = recipient.trim();
+  const isAddress = /^0x[a-fA-F0-9]{40}$/.test(value);
+  const target = isAddress
+    ? { address: value }
+    : { accountId: value.startsWith("@") ? value : value };
+  return authenticatedRequest("/contacts", {
+    method: "POST",
+    body: JSON.stringify({ name, ...target }),
+  });
+}
+
+export async function deleteSavedContact(name: string): Promise<{ ok: boolean }> {
+  return authenticatedRequest<{ ok: boolean }>(`/contacts/${encodeURIComponent(name)}`, { method: "DELETE" });
+}
+
+export async function setAccountCurrency(currency: string): Promise<{ currency: string }> {
+  return authenticatedRequest<{ currency: string }>("/me/currency", {
+    method: "PUT",
+    body: JSON.stringify({ currency: currency.trim().toUpperCase() }),
+  });
+}
+
 export async function getAccountRates(currency: "USD" | "INR" = "USD"): Promise<{ tokenUsd: number; usdLocal: number; currency: string; updatedAt: string }> {
   return rawRequest<{ tokenUsd: number; usdLocal: number; currency: string; updatedAt: string }>(`/rates?currency=${currency}`, {}, false);
+}
+
+
+export interface PersonalPaymentQr {
+  payload: string;
+  address: string;
+  alias: string | null;
+  chainId: 10143;
+  issuedAt: number;
+  expiresAt: number;
+}
+
+export async function getPersonalPaymentQr(): Promise<PersonalPaymentQr> {
+  return authenticatedRequest<PersonalPaymentQr>("/wallet/qr");
+}
+
+export interface VerifiedPaymentQr {
+  to: string;
+  address: string;
+  alias: string | null;
+  chainId: 10143;
+  verified: true;
+  expiresAt: number;
+}
+
+export async function verifyPaymentQrPayload(payload: string): Promise<VerifiedPaymentQr> {
+  return rawRequest<VerifiedPaymentQr>("/qr/verify", {
+    method: "POST",
+    body: JSON.stringify({ payload }),
+  }, false);
 }

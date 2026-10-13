@@ -1,12 +1,13 @@
 import type { HomeData, Me, Payment, Rates, SendResult, Wallet, WithdrawResult } from "../types/api";
 
-const BASE = (import.meta.env.VITE_API_URL ?? "").trim().replace(/\/+$/, "");
-const ACCESS_TOKEN_KEY = "token";
-const REFRESH_TOKEN_KEY = "refreshToken";
+const CONFIGURED_BASE = (
+  import.meta.env.VITE_SUBTLEPAY_API_BASE_URL ??
+  import.meta.env.VITE_API_URL ??
+  ""
+).trim().replace(/\/+$/, "");
 
 type SessionResponse = {
   token: string;
-  refreshToken: string;
   expiresIn: number;
   accountId?: string;
   address?: string;
@@ -17,48 +18,56 @@ type ApiFailure = {
   error?: { message?: string };
 };
 
-export const getToken = () => localStorage.getItem(ACCESS_TOKEN_KEY);
-export const getRefreshToken = () => localStorage.getItem(REFRESH_TOKEN_KEY);
-export const hasSession = () => Boolean(getToken() || getRefreshToken());
+// Access tokens are memory-only. Refresh tokens belong in the backend's HttpOnly cookie.
+let accessToken: string | null = null;
+let refreshInFlight: Promise<string | null> | null = null;
 
-export function saveSession(token: string, refreshToken?: string) {
-  localStorage.setItem(ACCESS_TOKEN_KEY, token);
-  if (refreshToken) localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+function apiBase(): string {
+  if (typeof window === "undefined") return CONFIGURED_BASE;
+  const local = ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
+  // Ignore machine-local URLs in forwarded/tunnel browsers; use same-origin Vite proxy instead.
+  if (!local) return window.location.origin;
+  return CONFIGURED_BASE || window.location.origin;
+}
+
+export const getToken = () => accessToken;
+// Kept only for compatibility with legacy imports; the refresh token is never exposed to JS.
+export const getRefreshToken = () => null;
+export const hasSession = () => Boolean(accessToken);
+
+export function saveSession(token: string, _refreshToken?: string) {
+  accessToken = token;
 }
 
 export function clearToken() {
-  localStorage.removeItem(ACCESS_TOKEN_KEY);
-  localStorage.removeItem(REFRESH_TOKEN_KEY);
+  accessToken = null;
 }
 
-let refreshInFlight: Promise<string | null> | null = null;
-
 async function refreshAccessToken(): Promise<string | null> {
-  const refreshToken = getRefreshToken();
-  if (!refreshToken) return null;
+  if (refreshInFlight) return refreshInFlight;
 
-  if (!refreshInFlight) {
-    refreshInFlight = (async () => {
-      try {
-        const response = await fetch(`${BASE}/auth/refresh`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ refreshToken }),
-        });
-        const data = (await response.json().catch(() => ({}))) as Partial<SessionResponse>;
-        if (!response.ok || !data.token || !data.refreshToken) {
-          throw new Error("The session has expired.");
-        }
-        saveSession(data.token, data.refreshToken);
-        return data.token;
-      } catch {
-        clearToken();
-        return null;
+  refreshInFlight = (async () => {
+    try {
+      const response = await fetch(`${apiBase()}/auth/refresh`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        credentials: "include",
+        cache: "no-store",
+        body: JSON.stringify({}),
+      });
+      const data = await response.json().catch(() => ({})) as Partial<SessionResponse>;
+      if (!response.ok || typeof data.token !== "string") {
+        throw new Error("The session has expired.");
       }
-    })().finally(() => {
+      saveSession(data.token);
+      return data.token;
+    } catch {
+      clearToken();
+      return null;
+    } finally {
       refreshInFlight = null;
-    });
-  }
+    }
+  })();
 
   return refreshInFlight;
 }
@@ -71,18 +80,21 @@ async function request<T>(
 ): Promise<T> {
   const send = (token: string | null) => {
     const headers: Record<string, string> = {
-      "Content-Type": "application/json",
+      Accept: "application/json",
       ...extraHeaders,
     };
+    if (body !== undefined) headers["Content-Type"] = "application/json";
     if (token) headers.Authorization = `Bearer ${token}`;
-    return fetch(`${BASE}${path}`, {
+    return fetch(`${apiBase()}${path}`, {
       method,
       headers,
       body: body === undefined ? undefined : JSON.stringify(body),
+      credentials: "include",
+      cache: "no-store",
     });
   };
 
-  let response = await send(getToken());
+  let response = await send(accessToken);
   const canRefresh = path !== "/auth/login" && path !== "/auth/register" && path !== "/auth/refresh";
 
   if (response.status === 401 && canRefresh) {
@@ -114,16 +126,14 @@ export const api = {
   setCurrency: (currency: string) =>
     request<{ currency: string }>("PUT", "/me/currency", { currency }),
   getWallet: () => request<Wallet>("GET", "/wallet"),
-  setAlias: (alias: string) => request<{ alias: string }>("POST", "/alias", { alias }),
+  setAlias: (alias: string) =>
+    request<{ alias: string }>("POST", "/alias", { alias }),
   resolveAlias: (name: string) =>
     request<{ alias: string; address: string }>("GET", `/alias/${encodeURIComponent(name)}`),
   getRates: (currency: string) =>
     request<Rates>("GET", `/rates?${new URLSearchParams({ currency })}`),
   getCurrencies: () =>
-    request<{ currencies: Array<{ code: string; name: string; exponent: number }> }>(
-      "GET",
-      "/rates/currencies",
-    ),
+    request<{ currencies: Array<{ code: string; name: string; exponent: number }> }>("GET", "/rates/currencies"),
   getTokenPrice: (currency: string, amount = "1") =>
     request<{ asset: string; currency: string; tokenUsd: number; price: string; amount: string; value: string; updatedAt: string }>(
       "GET",
