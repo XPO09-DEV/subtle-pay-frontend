@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 430" role="img" aria-labelledby="title">
+  <title id="title">Subtle Pay</title>
+  <g transform="translate(190 20) scale(1.12)">
+    <path fill="#2875F0" d="M20 43 62 12C71 5 79 5 88 10l64 37c20 12 31 27 31 49v37c-2-15-10-26-25-35L20 43Z"/>
+    <path fill="#4A515D" d="M7 65c2 26 15 45 38 58l97 54c8 5 17 4 25-2l17-12c4-3 3-6-1-8L66 96C43 84 31 67 27 47Z"/>
+    <path fill="#2875F0" d="M100 91c4 13 9 18 22 22-13 4-18 9-22 22-4-13-9-18-22-22 13-4 18-9 22-22Z"/>
+  </g>
+  <g font-family="Arial, Helvetica, sans-serif" font-weight="750" font-size="58" letter-spacing="5">
+    <text x="35" y="377" fill="#444B57" textLength="315" lengthAdjust="spacingAndGlyphs">SUBTLE</text>
+    <text x="363" y="377" fill="#2875F0" textLength="202" lengthAdjust="spacingAndGlyphs">PAY</text>
+  </g>
+</svg>
