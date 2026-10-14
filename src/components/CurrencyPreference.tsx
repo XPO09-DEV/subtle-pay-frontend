@@ -7,6 +7,7 @@ export default function CurrencyPreference() {
   const [currency, setCurrency] = useState("USD");
   const [supported, setSupported] = useState<string[]>([]);
   const [saved, setSaved] = useState(false);
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   useEffect(() => {
     let alive = true;
@@ -20,7 +21,9 @@ export default function CurrencyPreference() {
   async function saveDefault() {
     setSaved(false); setError("");
     try {
-      const result = await updateAccountCurrency(currency);
+      if (!password) { setError("Enter your account password to confirm this change."); return; }
+      const result = await updateAccountCurrency(currency, password);
+      setPassword("");
       setCurrency(result.currency); setSaved(true);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Currency preference could not be saved.");
@@ -42,7 +45,9 @@ export default function CurrencyPreference() {
           <option key={option.code} value={option.code.toUpperCase()}>{option.symbol}  {option.code.toUpperCase()} — {option.name}</option>
         ))}
       </select>
-      <button type="button" className="currency-pref-save" onClick={saveDefault}>Save default currency</button>
+      <label className="currency-pref-label" htmlFor="currency-pref-password">Confirm account password</label>
+      <input id="currency-pref-password" className="currency-pref-select" type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required />
+      <button type="button" className="currency-pref-save" onClick={() => void saveDefault()}>Save default currency</button>
       <p className={saved ? "currency-pref-feedback saved" : "currency-pref-feedback"} role="status">{error || (saved ? `Default currency saved as ${currency.toUpperCase()}.` : "Changes are saved to your Subtle Pay account.")}</p>
     </section>
   );
