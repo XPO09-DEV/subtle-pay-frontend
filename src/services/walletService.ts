@@ -22,8 +22,10 @@ const API_BASE_URL = ((import.meta.env.VITE_SUBTLEPAY_API_BASE_URL as string | u
 export function getBackendApiBaseUrl(): string {
   if (API_BASE_URL) return API_BASE_URL;
   if (typeof window === "undefined") return "";
-  if (["localhost", "127.0.0.1"].includes(window.location.hostname) && window.location.port === "5173") {
-    return `${window.location.protocol}//${window.location.hostname}:4000`;
+  if (["localhost", "127.0.0.1"].includes(window.location.hostname)) {
+    // The Subtle Pay local stack uses backend :4055 with frontend :5174.
+    if (window.location.port === "5174") return "http://127.0.0.1:4055";
+    if (window.location.port === "5173") return `${window.location.protocol}//${window.location.hostname}:4000`;
   }
   return window.location.origin;
 }
