@@ -26,8 +26,7 @@ export default function WalletCard({
   onConnectWallet,
   onCopyAddress,
   onRefreshWallet,
-  onDisconnectWallet,
-  displayCurrency = "USD",
+    displayCurrency = "USD",
   usdLocalRate = 1,
 }: {
   selectedToken: string;
