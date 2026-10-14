@@ -236,6 +236,7 @@ export interface AccountHome {
   currency: string;
   address: string;
   balanceToken: string;
+  stableBalanceToken?: string | null;
   balanceUsd: string;
   balanceLocal: string;
   asset: string;
