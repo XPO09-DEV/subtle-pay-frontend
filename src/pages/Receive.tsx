@@ -252,7 +252,7 @@ export default function Receive({ walletAddress = null, displayName = "", accoun
         <div className="receive-address-meta"><Icon name="shield" size={15} /><span>Backend-managed account wallet · Testnet only</span></div>
         <div className="button-row receive-action-row receive-qr-actions">
           <button type="button" className="primary-button" onClick={() => void shareMyQr()} disabled={!payQr || shareQrBusy}>
-            <Icon name="share" size={16} />{shareQrBusy ? "Preparing…" : "Share receiving QR"}
+            <Icon name="arrow-up-right" size={16} />{shareQrBusy ? "Preparing…" : "Share receiving QR"}
           </button>
           <button type="button" className="secondary-button" onClick={() => void downloadShareQr()} disabled={!payQr || shareQrBusy}>
             <Icon name="download" size={16} />Download QR card
