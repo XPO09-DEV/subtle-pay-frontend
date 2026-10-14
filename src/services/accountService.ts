@@ -11,6 +11,7 @@ export interface AccountProfile {
   walletCreatedAt: number | null;
   region: string | null;
   regionConsentAt: number | null;
+  country: string | null;
 }
 
 export interface AccountSession {
@@ -29,6 +30,7 @@ interface ProfileUpdate {
   displayName?: string | null;
   region?: string | null;
   shareRegion?: boolean;
+  country?: string | null;
 }
 
 let accessToken: string | null = null;
@@ -130,7 +132,7 @@ export async function loginAccount(accountId: string, password: string): Promise
 
 export async function getAccountProfile(): Promise<AccountProfile> { return authenticatedRequest<AccountProfile>("/me"); }
 
-export async function updateAccountProfile(input: ProfileUpdate): Promise<Pick<AccountProfile, "displayName" | "alias" | "region" | "regionConsentAt">> {
+export async function updateAccountProfile(input: ProfileUpdate): Promise<Pick<AccountProfile, "displayName" | "alias" | "region" | "regionConsentAt" | "country">> {
   return authenticatedRequest("/me/profile", { method: "PUT", body: JSON.stringify(input) });
 }
 
@@ -270,8 +272,18 @@ export async function verifyPayQr(payload: string): Promise<VerifiedPayQr> {
   return authenticatedRequest<VerifiedPayQr>("/qr/verify", { method: "POST", body: JSON.stringify({ payload }) });
 }
 
-export async function updateAccountCurrency(currency: string): Promise<{ currency: string }> {
-  return authenticatedRequest<{ currency: string }>("/me/currency", { method: "PUT", body: JSON.stringify({ currency }) });
+export async function updateAccountCurrency(currency: string, currentPassword: string): Promise<{ currency: string }> {
+  return authenticatedRequest<{ currency: string }>("/me/currency", { method: "PUT", body: JSON.stringify({ currency, currentPassword }) });
+}
+
+export interface SupportedCountry { code: string; name: string }
+export async function getSupportedCountries(): Promise<SupportedCountry[]> {
+  const result = await rawRequest<{ countries: SupportedCountry[] }>("/meta/countries", {}, false);
+  return result.countries;
+}
+
+export async function updateAccountAlias(alias: string, currentPassword: string): Promise<{ alias: string; previousAlias: string | null }> {
+  return authenticatedRequest("/me/alias", { method: "PUT", body: JSON.stringify({ alias, currentPassword }) });
 }
 
 export async function getSupportedCurrencies(): Promise<string[]> {
