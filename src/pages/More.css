@@ -19,113 +19,212 @@
 @media(max-width:420px) { .more-passkey-row { grid-template-columns:32px minmax(0,1fr); } .more-passkey-row>button { grid-column:2; justify-self:start; } }
 
 
-/* Settings navigation: one section opens when its menu item is selected. */
+/* Nested Settings menu: child options appear directly under their parent. */
 .settings-option-menu {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-  padding: 12px;
-  margin-bottom: 4px;
+  gap: 9px;
+  padding: 0;
+  margin: 0 0 4px;
+  background: transparent;
+}
+.settings-menu-group {
+  min-width: 0;
+  overflow: hidden;
   border: 1px solid #e8e9ed;
-  border-radius: 20px;
+  border-radius: 16px;
   background: #ffffff;
 }
-.settings-option-menu-item {
+.settings-option-menu-parent {
   display: flex;
+  width: 100%;
   min-width: 0;
-  min-height: 72px;
+  min-height: 68px;
   align-items: center;
-  gap: 11px;
-  padding: 13px;
-  border: 1px solid #ececef;
-  border-radius: 14px;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 0;
   background: #ffffff;
   color: #17191f;
+  font: inherit;
   text-align: left;
   cursor: pointer;
-  font: inherit;
-  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, transform 150ms ease;
+  transition: background-color 150ms ease, color 150ms ease;
 }
-.settings-option-menu-item:hover {
+.settings-option-menu-parent:hover {
   background: #f8f8fa;
-  border-color: #d4d6dc;
-  transform: translateY(-1px);
 }
-.settings-option-menu-item:focus-visible {
+.settings-option-menu-parent:focus-visible,
+.settings-submenu-item:focus-visible {
   outline: 2px solid #17191f;
-  outline-offset: 2px;
+  outline-offset: -3px;
 }
-.settings-option-menu-item.active {
-  color: #ffffff;
-  border-color: #17191f;
-  background: #17191f;
+.settings-option-menu-parent.active {
+  background: #f5f5f7;
 }
-.settings-option-menu-item.danger:not(.active) {
+.settings-option-menu-parent.danger:not(.active) {
   color: #a92828;
 }
-.settings-option-menu-item.active.danger {
-  border-color: #8e2424;
-  background: #8e2424;
-}
-.settings-option-menu-item > span:not(.settings-menu-chevron) {
+.settings-option-menu-parent > span:not(.settings-menu-chevron) {
   display: grid;
   min-width: 0;
   flex: 1;
   gap: 4px;
 }
-.settings-option-menu-item strong {
-  font-size: 12px;
+.settings-option-menu-parent strong {
+  font-size: 13px;
   line-height: 1.35;
   font-weight: 700;
 }
-.settings-option-menu-item small {
+.settings-option-menu-parent small {
   color: #70737b;
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1.4;
-}
-.settings-option-menu-item.active small {
-  color: #d6d6dc;
 }
 .settings-menu-chevron {
   flex: 0 0 auto;
-  font-size: 19px;
+  color: #555b65;
+  font-size: 20px;
   line-height: 1;
   font-weight: 500;
 }
-.settings-option-menu-item.active .settings-menu-chevron {
-  color: #ffffff;
+.settings-submenu {
+  display: grid;
+  gap: 4px;
+  padding: 8px 12px 12px 42px;
+  border-top: 1px solid #ececef;
+  background: #fafafa;
+  animation: settings-submenu-appear 150ms ease-out;
 }
-#settings-profile,
-#settings-account-management,
-#settings-security,
-#settings-passkeys,
-#settings-sessions,
-#settings-login-history,
-#settings-currency,
-#settings-merchant,
-#settings-delete,
-.more-merchant-dashboard-card[hidden] {
-  scroll-margin-top: 18px;
+.settings-submenu-item {
+  display: flex;
+  width: 100%;
+  min-height: 42px;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 0;
+  border-left: 2px solid #e1e2e6;
+  border-radius: 0 10px 10px 0;
+  background: transparent;
+  color: #30333a;
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+.settings-submenu-item:hover {
+  background: #f0f0f3;
+}
+.settings-submenu-item.active {
+  border-left-color: #17191f;
+  background: #ffffff;
+  color: #17191f;
+  font-weight: 700;
+}
+.settings-submenu-item.danger {
+  color: #a92828;
+}
+.settings-submenu-item.active.danger {
+  border-left-color: #a92828;
+  background: #fff7f7;
 }
 .more-settings-card[hidden],
 .more-danger-zone[hidden] {
   display: none !important;
 }
-@media (max-width: 760px) {
-  .settings-option-menu {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+@keyframes settings-submenu-appear {
+  from { opacity: 0; transform: translateY(-3px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-@media (max-width: 380px) {
-  .settings-option-menu {
-    grid-template-columns: 1fr;
+
+/* Sign-out confirmation with a clear security reminder. */
+.signout-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(13, 15, 20, 0.56);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+.signout-confirm-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(100%, 440px);
+  max-height: min(90vh, 720px);
+  overflow-y: auto;
+  padding: 26px;
+  border: 1px solid #e8e9ed;
+  border-radius: 22px;
+  background: #ffffff;
+  color: #17191f;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.24);
+}
+.signout-confirm-icon {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border-radius: 15px;
+  background: #fff0e8;
+  color: #a4441b;
+}
+.signout-confirm-dialog .section-kicker {
+  margin-top: 2px;
+}
+.signout-confirm-dialog h2 {
+  margin: 0;
+  font-size: 22px;
+  letter-spacing: -0.035em;
+}
+.signout-confirm-copy {
+  display: grid;
+  gap: 8px;
+  color: #60646d;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.signout-confirm-copy p {
+  margin: 0;
+}
+.signout-confirm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 8px;
+}
+.signout-confirm-actions button {
+  min-height: 42px;
+}
+.more-merchant-centre-button {
+  margin-top: 12px;
+}
+@media (max-width: 460px) {
+  .settings-submenu {
+    padding-left: 20px;
+  }
+  .signout-confirm-dialog {
+    padding: 20px;
+    border-radius: 19px;
+  }
+  .signout-confirm-actions {
+    flex-direction: column-reverse;
+  }
+  .signout-confirm-actions button {
+    width: 100%;
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .settings-option-menu-item {
+  .settings-option-menu-parent,
+  .settings-submenu-item {
     transition: none;
   }
-  .settings-option-menu-item:hover {
-    transform: none;
+  .settings-submenu {
+    animation: none;
   }
 }
