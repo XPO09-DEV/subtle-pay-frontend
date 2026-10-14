@@ -158,7 +158,7 @@ export default function Send({
 
   function shareIdentityText() {
     const alias = accountAlias || shareQrAlias;
-    const identity = alias ? `Alias: @${alias.replace(/^@/, "").replace(/@monad$/i, "")}@monad` : `Name: ${displayName.trim() || "Subtle Pay"}`;
+    const identity = alias ? `Alias: ${alias.replace(/^@/, "").replace(/@monad$/i, "")}@monad` : `Name: ${displayName.trim() || "Subtle Pay"}`;
     return `Subtle Pay · Monad Testnet\n${identity}\nWallet address: ${walletAddress || ""}\nNetwork: Monad Testnet (Chain ID 10143)\nOnly send native testnet MON to this address. Testnet tokens have no cash value.`;
   }
 
@@ -197,7 +197,7 @@ export default function Send({
       if (alias) {
         context.fillStyle = "#141824";
         context.font = "700 30px Arial, sans-serif";
-        context.fillText("@" + alias.replace(/^@/, "").replace(/@monad$/i, "") + "@monad", 360, 158);
+        context.fillText(alias.replace(/^@/, "").replace(/@monad$/i, "") + "@monad", 360, 158);
       } else if (displayName.trim()) {
         context.fillStyle = "#141824";
         context.font = "700 28px Arial, sans-serif";
@@ -486,7 +486,7 @@ export default function Send({
         {!walletAddress ? <p className="small-muted">Sign in to prepare your receiving QR.</p> : shareQrPayload ? <>
           <div className="send-share-qr-preview">
             <QRCodeSVG ref={shareQrRef} value={shareQrPayload} size={196} level="H" includeMargin />
-            <strong>{accountAlias ? "@" + accountAlias.replace(/^@/, "").replace(/@monad$/i, "") + "@monad" : displayName.trim() || "Subtle Pay"}</strong>
+            <strong>{accountAlias ? accountAlias.replace(/^@/, "").replace(/@monad$/i, "") + "@monad" : displayName.trim() || "Subtle Pay"}</strong>
             <span>{walletAddress}</span>
             <small>Monad Testnet · Chain ID 10143</small>
           </div>
