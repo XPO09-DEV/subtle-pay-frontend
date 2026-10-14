@@ -44,6 +44,7 @@ type MoreProps = {
 };
 type Notice = { kind: "success" | "error"; text: string };
 type SettingsSection = "profile" | "accounts" | "security" | "passkeys" | "sessions" | "history" | "currency" | "merchant" | "delete";
+type SettingsCategory = "account" | "security" | "preferences" | "merchant" | "actions";
 const SAVED_ACCOUNTS_KEY = "subtlepay.saved.account-ids.v1";
 
 function normalizeAccountIdForUi(value: string): string {
@@ -137,6 +138,8 @@ export default function More({
   const [busy, setBusy] = useState("");
   const [notice, setNotice] = useState<Notice | null>(null);
   const [activeSettingsSection, setActiveSettingsSection] = useState<SettingsSection | null>(null);
+  const [expandedSettingsCategory, setExpandedSettingsCategory] = useState<SettingsCategory | null>(null);
+  const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
 
   useEffect(() => { setDisplayName(profile?.displayName ?? ""); setCountry(profile?.country ?? ""); setAliasName(profile?.alias ?? ""); setCurrency(profile?.currency ?? "USD"); setMerchantName(profile?.displayName ?? ""); }, [profile?.displayName, profile?.country, profile?.alias, profile?.currency]);
   useEffect(() => {
@@ -159,7 +162,12 @@ export default function More({
   }, []);
 
   function report(kind: Notice["kind"], text: string) { setNotice({ kind, text }); }
-  function toggleSettingsSection(section: SettingsSection) {
+  function toggleSettingsCategory(category: SettingsCategory) {
+    setExpandedSettingsCategory(expandedSettingsCategory === category ? null : category);
+    setActiveSettingsSection(null);
+  }
+  function toggleSettingsSection(section: SettingsSection, category: SettingsCategory) {
+    setExpandedSettingsCategory(category);
     setActiveSettingsSection((current) => current === section ? null : section);
   }
   async function saveProfile(event: FormEvent<HTMLFormElement>) {
@@ -364,15 +372,41 @@ export default function More({
       {notice && <div className={notice.kind === "success" ? "inline-notice success" : "inline-notice"} role="status"><Icon name={notice.kind === "success" ? "check-circle" : "info"} size={16} /><span>{notice.text}</span><button type="button" onClick={() => setNotice(null)} aria-label="Dismiss"><Icon name="close" size={14} /></button></div>}
 
       <nav className="settings-option-menu" aria-label="Settings sections">
-        <button type="button" className={activeSettingsSection === "profile" ? "settings-option-menu-item active" : "settings-option-menu-item"} onClick={() => toggleSettingsSection("profile")} aria-expanded={activeSettingsSection === "profile"} aria-controls="settings-profile"><Icon name="user" size={19} /><span><strong>Profile & wallet</strong><small>Name, country and alias</small></span><span className="settings-menu-chevron" aria-hidden="true">{activeSettingsSection === "profile" ? "−" : "+"}</span></button>
-        <button type="button" className={activeSettingsSection === "accounts" ? "settings-option-menu-item active" : "settings-option-menu-item"} onClick={() => toggleSettingsSection("accounts")} aria-expanded={activeSettingsSection === "accounts"} aria-controls="settings-account-management"><Icon name="wallet" size={19} /><span><strong>Account Management</strong><small>Saved accounts and switching</small></span><span className="settings-menu-chevron" aria-hidden="true">{activeSettingsSection === "accounts" ? "−" : "+"}</span></button>
-        <button type="button" className={activeSettingsSection === "security" ? "settings-option-menu-item active" : "settings-option-menu-item"} onClick={() => toggleSettingsSection("security")} aria-expanded={activeSettingsSection === "security"} aria-controls="settings-security"><Icon name="shield" size={19} /><span><strong>Password & MPIN</strong><small>Protect payment access</small></span><span className="settings-menu-chevron" aria-hidden="true">{activeSettingsSection === "security" ? "−" : "+"}</span></button>
-        <button type="button" className={activeSettingsSection === "passkeys" ? "settings-option-menu-item active" : "settings-option-menu-item"} onClick={() => toggleSettingsSection("passkeys")} aria-expanded={activeSettingsSection === "passkeys"} aria-controls="settings-passkeys"><Icon name="fingerprint" size={19} /><span><strong>Passkeys & biometrics</strong><small>Register and manage passkeys</small></span><span className="settings-menu-chevron" aria-hidden="true">{activeSettingsSection === "passkeys" ? "−" : "+"}</span></button>
-        <button type="button" className={activeSettingsSection === "sessions" ? "settings-option-menu-item active" : "settings-option-menu-item"} onClick={() => toggleSettingsSection("sessions")} aria-expanded={activeSettingsSection === "sessions"} aria-controls="settings-sessions"><Icon name="smartphone" size={19} /><span><strong>Devices & sessions</strong><small>Manage active sessions</small></span><span className="settings-menu-chevron" aria-hidden="true">{activeSettingsSection === "sessions" ? "−" : "+"}</span></button>
-        <button type="button" className={activeSettingsSection === "history" ? "settings-option-menu-item active" : "settings-option-menu-item"} onClick={() => toggleSettingsSection("history")} aria-expanded={activeSettingsSection === "history"} aria-controls="settings-login-history"><Icon name="clock" size={19} /><span><strong>Login history</strong><small>Review account access</small></span><span className="settings-menu-chevron" aria-hidden="true">{activeSettingsSection === "history" ? "−" : "+"}</span></button>
-        <button type="button" className={activeSettingsSection === "currency" ? "settings-option-menu-item active" : "settings-option-menu-item"} onClick={() => toggleSettingsSection("currency")} aria-expanded={activeSettingsSection === "currency"} aria-controls="settings-currency"><Icon name="globe" size={19} /><span><strong>Display currency</strong><small>Choose your quote currency</small></span><span className="settings-menu-chevron" aria-hidden="true">{activeSettingsSection === "currency" ? "−" : "+"}</span></button>
-        <button type="button" className={activeSettingsSection === "merchant" ? "settings-option-menu-item active" : "settings-option-menu-item"} onClick={() => toggleSettingsSection("merchant")} aria-expanded={activeSettingsSection === "merchant"} aria-controls="settings-merchant"><Icon name="merchant" size={19} /><span><strong>Merchant tools</strong><small>Merchant profile and Autopay</small></span><span className="settings-menu-chevron" aria-hidden="true">{activeSettingsSection === "merchant" ? "−" : "+"}</span></button>
-        <button type="button" className={activeSettingsSection === "delete" ? "settings-option-menu-item active danger" : "settings-option-menu-item danger"} onClick={() => toggleSettingsSection("delete")} aria-expanded={activeSettingsSection === "delete"} aria-controls="settings-delete"><Icon name="alert" size={19} /><span><strong>Delete account</strong><small>Permanent account action</small></span><span className="settings-menu-chevron" aria-hidden="true">{activeSettingsSection === "delete" ? "−" : "+"}</span></button>
+        <div className="settings-menu-group">
+          <button type="button" className={expandedSettingsCategory === "account" ? "settings-option-menu-parent active" : "settings-option-menu-parent"} onClick={() => toggleSettingsCategory("account")} aria-expanded={expandedSettingsCategory === "account"} aria-controls="settings-submenu-account"><Icon name="wallet" size={19} /><span><strong>Account Management</strong><small>Profile, wallet and saved accounts</small></span><span className="settings-menu-chevron" aria-hidden="true">{expandedSettingsCategory === "account" ? "−" : "+"}</span></button>
+          {expandedSettingsCategory === "account" && <div className="settings-submenu" id="settings-submenu-account">
+            <button type="button" className={activeSettingsSection === "profile" ? "settings-submenu-item active" : "settings-submenu-item"} onClick={() => toggleSettingsSection("profile", "account")} aria-pressed={activeSettingsSection === "profile"}><Icon name="user" size={16} />Profile & wallet</button>
+            <button type="button" className={activeSettingsSection === "accounts" ? "settings-submenu-item active" : "settings-submenu-item"} onClick={() => toggleSettingsSection("accounts", "account")} aria-pressed={activeSettingsSection === "accounts"}><Icon name="users" size={16} />Saved accounts & switching</button>
+          </div>}
+        </div>
+        <div className="settings-menu-group">
+          <button type="button" className={expandedSettingsCategory === "security" ? "settings-option-menu-parent active" : "settings-option-menu-parent"} onClick={() => toggleSettingsCategory("security")} aria-expanded={expandedSettingsCategory === "security"} aria-controls="settings-submenu-security"><Icon name="shield" size={19} /><span><strong>Security & access</strong><small>Password, biometrics and devices</small></span><span className="settings-menu-chevron" aria-hidden="true">{expandedSettingsCategory === "security" ? "−" : "+"}</span></button>
+          {expandedSettingsCategory === "security" && <div className="settings-submenu" id="settings-submenu-security">
+            <button type="button" className={activeSettingsSection === "security" ? "settings-submenu-item active" : "settings-submenu-item"} onClick={() => toggleSettingsSection("security", "security")} aria-pressed={activeSettingsSection === "security"}><Icon name="key" size={16} />Password & MPIN</button>
+            <button type="button" className={activeSettingsSection === "passkeys" ? "settings-submenu-item active" : "settings-submenu-item"} onClick={() => toggleSettingsSection("passkeys", "security")} aria-pressed={activeSettingsSection === "passkeys"}><Icon name="fingerprint" size={16} />Passkeys & biometrics</button>
+            <button type="button" className={activeSettingsSection === "sessions" ? "settings-submenu-item active" : "settings-submenu-item"} onClick={() => toggleSettingsSection("sessions", "security")} aria-pressed={activeSettingsSection === "sessions"}><Icon name="smartphone" size={16} />Devices & sessions</button>
+            <button type="button" className={activeSettingsSection === "history" ? "settings-submenu-item active" : "settings-submenu-item"} onClick={() => toggleSettingsSection("history", "security")} aria-pressed={activeSettingsSection === "history"}><Icon name="clock" size={16} />Login history</button>
+          </div>}
+        </div>
+        <div className="settings-menu-group">
+          <button type="button" className={expandedSettingsCategory === "preferences" ? "settings-option-menu-parent active" : "settings-option-menu-parent"} onClick={() => toggleSettingsCategory("preferences")} aria-expanded={expandedSettingsCategory === "preferences"} aria-controls="settings-submenu-preferences"><Icon name="sliders" size={19} /><span><strong>Preferences</strong><small>Personal display settings</small></span><span className="settings-menu-chevron" aria-hidden="true">{expandedSettingsCategory === "preferences" ? "−" : "+"}</span></button>
+          {expandedSettingsCategory === "preferences" && <div className="settings-submenu" id="settings-submenu-preferences">
+            <button type="button" className={activeSettingsSection === "currency" ? "settings-submenu-item active" : "settings-submenu-item"} onClick={() => toggleSettingsSection("currency", "preferences")} aria-pressed={activeSettingsSection === "currency"}><Icon name="globe" size={16} />Display currency</button>
+          </div>}
+        </div>
+        <div className="settings-menu-group">
+          <button type="button" className={expandedSettingsCategory === "merchant" ? "settings-option-menu-parent active" : "settings-option-menu-parent"} onClick={() => toggleSettingsCategory("merchant")} aria-expanded={expandedSettingsCategory === "merchant"} aria-controls="settings-submenu-merchant"><Icon name="merchant" size={19} /><span><strong>Merchant tools</strong><small>Merchant profile and Autopay</small></span><span className="settings-menu-chevron" aria-hidden="true">{expandedSettingsCategory === "merchant" ? "−" : "+"}</span></button>
+          {expandedSettingsCategory === "merchant" && <div className="settings-submenu" id="settings-submenu-merchant">
+            <button type="button" className={activeSettingsSection === "merchant" ? "settings-submenu-item active" : "settings-submenu-item"} onClick={() => toggleSettingsSection("merchant", "merchant")} aria-pressed={activeSettingsSection === "merchant"}><Icon name="merchant" size={16} />Merchant profile & Autopay</button>
+          </div>}
+        </div>
+        <div className="settings-menu-group">
+          <button type="button" className={expandedSettingsCategory === "actions" ? "settings-option-menu-parent active danger" : "settings-option-menu-parent danger"} onClick={() => toggleSettingsCategory("actions")} aria-expanded={expandedSettingsCategory === "actions"} aria-controls="settings-submenu-actions"><Icon name="alert" size={19} /><span><strong>Account actions</strong><small>Sign out or permanently delete account</small></span><span className="settings-menu-chevron" aria-hidden="true">{expandedSettingsCategory === "actions" ? "−" : "+"}</span></button>
+          {expandedSettingsCategory === "actions" && <div className="settings-submenu" id="settings-submenu-actions">
+            <button type="button" className={activeSettingsSection === "delete" ? "settings-submenu-item active danger" : "settings-submenu-item danger"} onClick={() => toggleSettingsSection("delete", "actions")} aria-pressed={activeSettingsSection === "delete"}><Icon name="alert" size={16} />Delete account</button>
+            <button type="button" className="settings-submenu-item danger" onClick={() => setShowSignOutConfirm(true)}><Icon name="logout" size={16} />Sign out</button>
+          </div>}
+        </div>
       </nav>
 
       <section id="settings-profile" hidden={activeSettingsSection !== "profile"} className="panel more-settings-card">
@@ -513,14 +547,7 @@ export default function More({
         <p className="more-helper">This controls displayed values and quotes. Monad Testnet transfers still settle in MON; this preference does not by itself change the settlement asset.</p>
       </section>
 
-      {activeSettingsSection === "merchant" && merchantEnabled && merchant && <section hidden={activeSettingsSection !== "merchant"} className="panel more-settings-card more-merchant-dashboard-card">
-        <div className="panel-heading compact"><div><div className="section-kicker">MERCHANT ACCOUNT</div><h2>Merchant wallet controls</h2></div><Icon name="merchant" size={20} /></div>
-        <div className="merchant-profile-summary"><div><strong>{merchant.publicName}{merchant.status === "approved" && <span className="merchant-verified-badge more-profile-verified" title="Verified merchant">✓ Verified</span>}</strong><small>{merchant.category} · {merchant.status === "approved" ? "Verified" : merchant.status === "suspended" ? "Suspended" : "Awaiting verification"}</small></div><span className={merchant.status === "approved" ? "merchant-verified-badge" : "status-pill neutral"}>{merchant.status === "approved" ? "✓ Verified" : "Unverified"}</span></div>
-        <p className="more-helper">Manage your public merchant profile, payment QR and Autopay application status in Merchant Centre. Verification remains controlled by Subtle Pay review.</p>
-        <button type="button" className="primary-button wide-button" onClick={() => onOpenMerchantCentre?.()}>Open Merchant Centre <Icon name="arrow-up-right" size={16} /></button>
-      </section>}
-
-      <section id="settings-merchant" hidden={activeSettingsSection !== "merchant"} className="panel more-settings-card">
+            <section id="settings-merchant" hidden={activeSettingsSection !== "merchant"} className="panel more-settings-card">
         <div className="panel-heading compact"><div><div className="section-kicker">MERCHANT TOOLS</div><h2>Merchant profile & Autopay</h2></div><Icon name="merchant" size={20} /></div>
         {merchantEnabled && merchant ? <div className="merchant-profile-summary"><div><strong>{merchant.publicName}</strong><small>{merchant.category} · {merchant.status}</small></div><span className={merchant.status === "approved" ? "merchant-verified-badge" : "status-pill neutral"}>{merchant.status === "approved" ? "✓ Verified" : "Not verified"}</span></div>
           : <form className="more-form" onSubmit={(event) => void enableMerchant(event)}>
@@ -529,6 +556,7 @@ export default function More({
             <label className="field-label" htmlFor="more-merchant-category">Category</label><select id="more-merchant-category" className="form-select" value={merchantCategory} onChange={(event) => setMerchantCategory(event.target.value)}><option value="individual">Individual / creator</option><option value="retail">Retail</option><option value="services">Services</option><option value="online">Online business</option><option value="other">Other</option></select>
             <button type="submit" className="primary-button wide-button" disabled={Boolean(busy)}>{busy === "merchant" ? "Enabling…" : "Enable merchant profile"}</button>
           </form>}
+        {merchantEnabled && merchant && <button type="button" className="primary-button wide-button more-merchant-centre-button" onClick={() => onOpenMerchantCentre?.()}>Open Merchant Centre <Icon name="arrow-up-right" size={16} /></button>}
         <div className="more-divider" />
         <h3>Apply for Autopay</h3><p className="more-helper">Autopay stays unavailable until a team member approves the application. Submitting an application does not activate recurring payments.</p>
         <form className="more-form" onSubmit={(event) => void submitAutopay(event)}>
@@ -548,7 +576,23 @@ export default function More({
         </form>
       </section>
 
-      <button type="button" className="secondary-button more-signout-button" onClick={onLogout} disabled={Boolean(busy)}><Icon name="logout" size={16} /> Sign out</button>
+      <button type="button" className="secondary-button more-signout-button" onClick={() => setShowSignOutConfirm(true)} disabled={Boolean(busy)}><Icon name="logout" size={16} /> Sign out</button>
+
+      {showSignOutConfirm && <div className="signout-confirm-backdrop">
+        <section className="signout-confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="signout-confirm-title" aria-describedby="signout-confirm-description">
+          <span className="signout-confirm-icon"><Icon name="shield" size={24} /></span>
+          <div className="section-kicker">SECURITY REMINDER</div>
+          <h2 id="signout-confirm-title">Before you sign out</h2>
+          <div id="signout-confirm-description" className="signout-confirm-copy">
+            <p>Make sure you know your Subtle Pay account ID and can access your password or a registered passkey before continuing. You may need them to sign in again.</p>
+            <p>Signing out ends this session only. It does not delete your account or initiate a payment or transfer.</p>
+          </div>
+          <div className="signout-confirm-actions">
+            <button type="button" className="secondary-button" onClick={() => setShowSignOutConfirm(false)}>Stay signed in</button>
+            <button type="button" className="danger-button" onClick={() => { setShowSignOutConfirm(false); onLogout(); }}>Sign out</button>
+          </div>
+        </section>
+      </div>}
     </div>
   );
 }
