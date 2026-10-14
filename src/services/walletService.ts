@@ -6,15 +6,15 @@ export interface WalletAsset {
   blockchain: "monad-testnet";
   chainLabel: "Monad Testnet";
   tokenName: string;
-  tokenSymbol: "MON";
+  tokenSymbol: "MON" | "USDC";
   balance: number;
   balanceRawInteger?: string;
   balanceUsd: number | null;
   priceUsd: number | null;
   tokenDecimals: number;
-  contractAddress: null;
+  contractAddress: string | null;
   thumbnail: null;
-  tokenType: "Native testnet coin";
+  tokenType: "Native testnet coin" | "Configured testnet token";
 }
 
 const API_BASE_URL = ((import.meta.env.VITE_SUBTLEPAY_API_BASE_URL as string | undefined) ?? "").trim().replace(/\/+$/, "");
