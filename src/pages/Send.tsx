@@ -109,6 +109,7 @@ export default function Send({
   const [authOpen, setAuthOpen] = useState(false);
   const [authMethod, setAuthMethod] = useState<"password" | "mpin" | "passkey">("password");
   const [authSecret, setAuthSecret] = useState("");
+  const [showAuthSecret, setShowAuthSecret] = useState(false);
   const [authError, setAuthError] = useState("");
 
   useEffect(() => {
@@ -223,6 +224,7 @@ export default function Send({
     setResult(null);
     setAuthError("");
     setAuthSecret("");
+    setShowAuthSecret(false);
 
     if (!walletAddress) {
       setNotice("Your Subtle Pay account wallet is unavailable. Sign in again before sending.");
@@ -530,28 +532,40 @@ export default function Send({
             <span>Settlement <strong>Native MON · Monad Testnet</strong></span>
           </div>
           <div className="payment-auth-methods" role="group" aria-label="Payment authorization method">
-            {passkeyEnabled && <button type="button" className={authMethod === "passkey" ? "selected" : ""} onClick={() => { setAuthMethod("passkey"); setAuthSecret(""); setAuthError(""); }}>Passkey / device biometric</button>}
-            {mpinEnabled && <button type="button" className={authMethod === "mpin" ? "selected" : ""} onClick={() => { setAuthMethod("mpin"); setAuthSecret(""); setAuthError(""); }}>6-digit MPIN</button>}
-            <button type="button" className={authMethod === "password" ? "selected" : ""} onClick={() => { setAuthMethod("password"); setAuthSecret(""); setAuthError(""); }}>Account password</button>
+            {passkeyEnabled && <button type="button" className={authMethod === "passkey" ? "selected" : ""} onClick={() => { setAuthMethod("passkey"); setAuthSecret(""); setShowAuthSecret(false); setAuthError(""); }}>Passkey / device biometric</button>}
+            {mpinEnabled && <button type="button" className={authMethod === "mpin" ? "selected" : ""} onClick={() => { setAuthMethod("mpin"); setAuthSecret(""); setShowAuthSecret(false); setAuthError(""); }}>6-digit MPIN</button>}
+            <button type="button" className={authMethod === "password" ? "selected" : ""} onClick={() => { setAuthMethod("password"); setAuthSecret(""); setShowAuthSecret(false); setAuthError(""); }}>Account password</button>
           </div>
           <form onSubmit={(event) => void authorizeAndSubmit(event)}>
             {authMethod === "passkey" ? <p className="account-gate-hint">Continue with your device's passkey prompt. Your browser or passkey provider may verify you with fingerprint, face recognition, or your device screen lock.</p> : <>
               <label className="field-label" htmlFor="payment-auth-secret">{authMethod === "mpin" ? "Enter your six-digit MPIN" : "Enter your account password"}</label>
-              <input
-                id="payment-auth-secret"
-                className="form-input"
-                type="password"
-                inputMode={authMethod === "mpin" ? "numeric" : undefined}
-                autoComplete={authMethod === "mpin" ? "one-time-code" : "current-password"}
-                maxLength={authMethod === "mpin" ? 6 : 128}
-                value={authSecret}
-                onChange={(event) => { setAuthSecret(authMethod === "mpin" ? event.target.value.replace(/\D/g, "").slice(0, 6) : event.target.value); setAuthError(""); }}
-                required
-              />
+              <div style={{ position: "relative" }}>
+                <input
+                  id="payment-auth-secret"
+                  className="form-input"
+                  style={{ paddingRight: 76 }}
+                  type={showAuthSecret ? "text" : "password"}
+                  inputMode={authMethod === "mpin" ? "numeric" : undefined}
+                  autoComplete={authMethod === "mpin" ? "one-time-code" : "current-password"}
+                  maxLength={authMethod === "mpin" ? 6 : 128}
+                  value={authSecret}
+                  onChange={(event) => { setAuthSecret(authMethod === "mpin" ? event.target.value.replace(/\D/g, "").slice(0, 6) : event.target.value); setAuthError(""); }}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowAuthSecret((visible) => !visible)}
+                  aria-label={showAuthSecret ? "Hide payment credential" : "Show payment credential"}
+                  aria-pressed={showAuthSecret}
+                  style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", fontSize: 12, fontWeight: 600, color: "#2563eb", padding: 6 }}
+                >
+                  {showAuthSecret ? "Hide" : "Show"}
+                </button>
+              </div>
             </>}
             {authError && <p className="inline-notice" role="alert">{authError}</p>}
             <div className="payment-auth-actions">
-              <button type="button" className="secondary-button" disabled={busy} onClick={() => { setAuthOpen(false); setAuthSecret(""); setAuthError(""); }}>Cancel</button>
+              <button type="button" className="secondary-button" disabled={busy} onClick={() => { setAuthOpen(false); setAuthSecret(""); setShowAuthSecret(false); setAuthError(""); }}>Cancel</button>
               <button type="submit" className="primary-button" disabled={busy || (authMethod !== "passkey" && !authSecret) || (authMethod === "mpin" && authSecret.length !== 6)}>
                 {busy ? (authMethod === "passkey" ? "Waiting for device…" : "Authorizing…") : authMethod === "passkey" ? "Verify with passkey & send" : "Authorize & send"}
               </button>
