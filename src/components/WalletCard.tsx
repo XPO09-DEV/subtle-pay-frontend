@@ -5,9 +5,10 @@ function formatAmount(value: number): string {
   return new Intl.NumberFormat("en-US", { maximumFractionDigits: value >= 1000 ? 3 : value >= 1 ? 5 : 8 }).format(value);
 }
 
-function formatUsd(value: number | null): string {
+function formatMoney(value: number | null, currency: string): string {
   if (value == null || !Number.isFinite(value)) return "—";
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: Math.abs(value) >= 1 ? 2 : 5 }).format(value);
+  try { return new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: Math.abs(value) >= 1 ? 2 : 5 }).format(value); }
+  catch { return `${currency} ${value.toFixed(2)}`; }
 }
 
 function shortAddress(address: string) {
@@ -26,6 +27,8 @@ export default function WalletCard({
   onCopyAddress,
   onRefreshWallet,
   onDisconnectWallet,
+  displayCurrency = "USD",
+  usdLocalRate = 1,
 }: {
   selectedToken: string;
   onTokenChange: (token: string) => void;
@@ -38,6 +41,8 @@ export default function WalletCard({
   onCopyAddress?: () => void;
   onRefreshWallet?: () => void;
   onDisconnectWallet?: () => void;
+  displayCurrency?: string;
+  usdLocalRate?: number;
 }) {
   const token = walletAssets.find((asset) => asset.id === selectedToken) ?? walletAssets[0] ?? null;
   const busy = walletStatus === "connecting" || walletStatus === "loading";
@@ -82,8 +87,8 @@ export default function WalletCard({
         </div>
         <div className="wallet-market-value">
           <span className="eyebrow light">MARKET VALUE</span>
-          <strong>{token ? formatUsd(token.balanceUsd) : "—"}</strong>
-          <span>{token ? (token.balanceUsd == null ? "Price unavailable" : "Market value · USD") : walletAddress ? (walletStatus === "loading" ? "Syncing on-chain assets…" : "Only verified indexed assets") : "No wallet connected"}</span>
+          <strong>{token ? formatMoney(token.balanceUsd == null ? null : token.balanceUsd * usdLocalRate, displayCurrency) : "—"}</strong>
+          <span>{token ? (token.balanceUsd == null ? "Price unavailable" : `Market value · ${displayCurrency}`) : walletAddress ? (walletStatus === "loading" ? "Syncing on-chain assets…" : "Only verified indexed assets") : "No wallet connected"}</span>
         </div>
       </div>
       <div className="wallet-card-divider" />
