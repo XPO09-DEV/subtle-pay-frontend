@@ -6,3 +6,14 @@
 
 .more-profile-verified { display: inline-flex; vertical-align: middle; margin-left: 7px; min-width: 18px; min-height: 18px; align-items: center; justify-content: center; border-radius: 50%; font-size: 11px; font-weight: 800; }
 .more-merchant-dashboard-card .primary-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+
+.more-passkey-list-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:6px 0 10px; }
+.more-passkey-list-heading h3 { margin:0; }
+.more-passkey-list { display:grid; gap:0; }
+.more-passkey-row { display:grid; grid-template-columns:36px minmax(0,1fr) auto; gap:11px; align-items:center; padding:13px 0; border-bottom:1px solid #ececef; }
+.more-passkey-row:last-child { border-bottom:0; }
+.more-passkey-copy { min-width:0; display:grid; gap:4px; }
+.more-passkey-copy strong { font-size:13px; overflow-wrap:anywhere; }
+.more-passkey-copy small { color:#70737b; font-size:11px; line-height:1.5; overflow-wrap:anywhere; }
+.more-passkey-remove-form { border-top:1px solid #ececef; padding-top:16px; margin-top:6px; }
+@media(max-width:420px) { .more-passkey-row { grid-template-columns:32px minmax(0,1fr); } .more-passkey-row>button { grid-column:2; justify-self:start; } }
