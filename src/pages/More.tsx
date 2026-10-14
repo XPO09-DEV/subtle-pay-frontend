@@ -26,6 +26,7 @@ import {
 } from "../services/accountService";
 import { getSupportedCurrencies, getSupportedCountries, updateAccountAlias } from "../services/accountService";
 import "./More.css";
+import { CURRENCIES } from "../data/currencies";
 
 type MoreProps = {
   accountId?: string;
@@ -127,7 +128,7 @@ export default function More({
   }, [accountId]);
   useEffect(() => {
     let alive = true;
-    void getSupportedCurrencies().then((items) => { if (alive && items.length) setCurrencies(items); }).catch(() => undefined);
+    void getSupportedCurrencies().then((items) => { if (alive && items.length) setCurrencies(CURRENCIES.filter((option) => items.includes(option.code.toUpperCase())).map((option) => option.code.toUpperCase())); }).catch(() => undefined);
     void getSupportedCountries().then((items) => { if (alive && items.length) setCountries(items); }).catch(() => undefined);
     void getMpinStatus().then((value) => { if (alive) setMpinEnabled(value.enabled); }).catch(() => undefined);
     void getAccountSessions().then((items) => { if (alive) setSessions(items); }).catch(() => undefined);
@@ -193,7 +194,7 @@ export default function More({
 
   async function switchAccount(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const id = switchingId.trim().toUpperCase();
+    const id = normalizeAccountIdForUi(switchingId);
     if (!switchPassword) { report("error", "Enter the password for this account to switch."); return; }
     setBusy("switch:" + id); setNotice(null);
     try {
@@ -409,7 +410,8 @@ export default function More({
         <form className="more-form" onSubmit={(event) => void saveCurrency(event)}>
           <label className="field-label" htmlFor="more-currency">Default display / quote currency</label>
           <select id="more-currency" className="form-select" value={currency} disabled={busy === "currency"} onChange={(event) => setCurrency(event.target.value)} required>
-            {currencies.map((code) => <option value={code} key={code}>{code}</option>)}
+            {currency && !currencies.includes(currency) && <option value={currency}>Current saved preference — {currency}</option>}
+            {currencies.map((code) => { const option = CURRENCIES.find((item) => item.code.toUpperCase() === code); return <option value={code} key={code}>{option ? `${option.symbol} ${option.name} (${code})` : code}</option>; })}
           </select>
           <label className="field-label" htmlFor="more-currency-password">Confirm account password to save</label>
           <input id="more-currency-password" className="form-input" type="password" value={currencyPassword} onChange={(event) => setCurrencyPassword(event.target.value)} autoComplete="current-password" required />
