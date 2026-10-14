@@ -43,6 +43,7 @@ type MoreProps = {
   onOpenMerchantCentre?: () => void;
 };
 type Notice = { kind: "success" | "error"; text: string };
+type SettingsSection = "profile" | "accounts" | "security" | "passkeys" | "sessions" | "history" | "currency" | "merchant" | "delete";
 const SAVED_ACCOUNTS_KEY = "subtlepay.saved.account-ids.v1";
 
 function normalizeAccountIdForUi(value: string): string {
@@ -135,6 +136,7 @@ export default function More({
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [busy, setBusy] = useState("");
   const [notice, setNotice] = useState<Notice | null>(null);
+  const [activeSettingsSection, setActiveSettingsSection] = useState<SettingsSection | null>(null);
 
   useEffect(() => { setDisplayName(profile?.displayName ?? ""); setCountry(profile?.country ?? ""); setAliasName(profile?.alias ?? ""); setCurrency(profile?.currency ?? "USD"); setMerchantName(profile?.displayName ?? ""); }, [profile?.displayName, profile?.country, profile?.alias, profile?.currency]);
   useEffect(() => {
@@ -157,6 +159,9 @@ export default function More({
   }, []);
 
   function report(kind: Notice["kind"], text: string) { setNotice({ kind, text }); }
+  function toggleSettingsSection(section: SettingsSection) {
+    setActiveSettingsSection((current) => current === section ? null : section);
+  }
   async function saveProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setBusy("profile"); setNotice(null);
     try {
@@ -350,18 +355,6 @@ export default function More({
     <div className="page-stack inner-page more-page">
       <div className="page-intro"><div><div className="section-kicker">YOUR ACCOUNT</div><h1>Settings</h1><p>Profile, account access, security and preferences.</p></div><span className="page-icon-bubble"><Icon name="settings" size={20} /></span></div>
 
-      <nav className="settings-option-menu" aria-label="Settings sections">
-        <a href="#settings-profile"><Icon name="user" size={19} /><span><strong>Profile & wallet</strong><small>Name, country and alias</small></span></a>
-        <a href="#settings-account-management"><Icon name="wallet" size={19} /><span><strong>Account Management</strong><small>Saved accounts and switching</small></span></a>
-        <a href="#settings-security"><Icon name="shield" size={19} /><span><strong>Password & MPIN</strong><small>Protect payment access</small></span></a>
-        <a href="#settings-passkeys"><Icon name="fingerprint" size={19} /><span><strong>Passkeys & biometrics</strong><small>Register and manage passkeys</small></span></a>
-        <a href="#settings-sessions"><Icon name="smartphone" size={19} /><span><strong>Devices & sessions</strong><small>Manage active sessions</small></span></a>
-        <a href="#settings-login-history"><Icon name="clock" size={19} /><span><strong>Login history</strong><small>Review account access</small></span></a>
-        <a href="#settings-currency"><Icon name="globe" size={19} /><span><strong>Display currency</strong><small>Choose your quote currency</small></span></a>
-        <a href="#settings-merchant"><Icon name="merchant" size={19} /><span><strong>Merchant tools</strong><small>Merchant profile and Autopay</small></span></a>
-        <a href="#settings-delete"><Icon name="alert" size={19} /><span><strong>Delete account</strong><small>Permanent account action</small></span></a>
-      </nav>
-
       <section className="profile-panel more-profile-summary">
         <span className="profile-avatar more-pixel-avatar"><img src={pixelAvatarUrl(profile?.displayName || handle, accountId || profile?.accountId || "wallet")} alt={`${(profile?.displayName || "Wallet").split(/\\s+/)[0]} pixel-art avatar`} /></span>
         <div className="profile-copy"><strong>{profile?.displayName || handle}{merchant?.status === "approved" && <span className="merchant-verified-badge more-profile-verified" title="Verified merchant" aria-label="Verified merchant">✓</span>}</strong><span>{profile?.accountId || accountId || "Signed-in account"}</span><small>{shortAddress(walletAddress)} · Monad Testnet</small></div>
@@ -370,7 +363,19 @@ export default function More({
 
       {notice && <div className={notice.kind === "success" ? "inline-notice success" : "inline-notice"} role="status"><Icon name={notice.kind === "success" ? "check-circle" : "info"} size={16} /><span>{notice.text}</span><button type="button" onClick={() => setNotice(null)} aria-label="Dismiss"><Icon name="close" size={14} /></button></div>}
 
-      <section id="settings-profile" className="panel more-settings-card">
+      <nav className="settings-option-menu" aria-label="Settings sections">
+        <button type="button" className={activeSettingsSection === "profile" ? "settings-option-menu-item active" : "settings-option-menu-item"} onClick={() => toggleSettingsSection("profile")} aria-expanded={activeSettingsSection === "profile"} aria-controls="settings-profile"><Icon name="user" size={19} /><span><strong>Profile & wallet</strong><small>Name, country and alias</small></span><span className="settings-menu-chevron" aria-hidden="true">{activeSettingsSection === "profile" ? "−" : "+"}</span></button>
+        <button type="button" className={activeSettingsSection === "accounts" ? "settings-option-menu-item active" : "settings-option-menu-item"} onClick={() => toggleSettingsSection("accounts")} aria-expanded={activeSettingsSection === "accounts"} aria-controls="settings-account-management"><Icon name="wallet" size={19} /><span><strong>Account Management</strong><small>Saved accounts and switching</small></span><span className="settings-menu-chevron" aria-hidden="true">{activeSettingsSection === "accounts" ? "−" : "+"}</span></button>
+        <button type="button" className={activeSettingsSection === "security" ? "settings-option-menu-item active" : "settings-option-menu-item"} onClick={() => toggleSettingsSection("security")} aria-expanded={activeSettingsSection === "security"} aria-controls="settings-security"><Icon name="shield" size={19} /><span><strong>Password & MPIN</strong><small>Protect payment access</small></span><span className="settings-menu-chevron" aria-hidden="true">{activeSettingsSection === "security" ? "−" : "+"}</span></button>
+        <button type="button" className={activeSettingsSection === "passkeys" ? "settings-option-menu-item active" : "settings-option-menu-item"} onClick={() => toggleSettingsSection("passkeys")} aria-expanded={activeSettingsSection === "passkeys"} aria-controls="settings-passkeys"><Icon name="fingerprint" size={19} /><span><strong>Passkeys & biometrics</strong><small>Register and manage passkeys</small></span><span className="settings-menu-chevron" aria-hidden="true">{activeSettingsSection === "passkeys" ? "−" : "+"}</span></button>
+        <button type="button" className={activeSettingsSection === "sessions" ? "settings-option-menu-item active" : "settings-option-menu-item"} onClick={() => toggleSettingsSection("sessions")} aria-expanded={activeSettingsSection === "sessions"} aria-controls="settings-sessions"><Icon name="smartphone" size={19} /><span><strong>Devices & sessions</strong><small>Manage active sessions</small></span><span className="settings-menu-chevron" aria-hidden="true">{activeSettingsSection === "sessions" ? "−" : "+"}</span></button>
+        <button type="button" className={activeSettingsSection === "history" ? "settings-option-menu-item active" : "settings-option-menu-item"} onClick={() => toggleSettingsSection("history")} aria-expanded={activeSettingsSection === "history"} aria-controls="settings-login-history"><Icon name="clock" size={19} /><span><strong>Login history</strong><small>Review account access</small></span><span className="settings-menu-chevron" aria-hidden="true">{activeSettingsSection === "history" ? "−" : "+"}</span></button>
+        <button type="button" className={activeSettingsSection === "currency" ? "settings-option-menu-item active" : "settings-option-menu-item"} onClick={() => toggleSettingsSection("currency")} aria-expanded={activeSettingsSection === "currency"} aria-controls="settings-currency"><Icon name="globe" size={19} /><span><strong>Display currency</strong><small>Choose your quote currency</small></span><span className="settings-menu-chevron" aria-hidden="true">{activeSettingsSection === "currency" ? "−" : "+"}</span></button>
+        <button type="button" className={activeSettingsSection === "merchant" ? "settings-option-menu-item active" : "settings-option-menu-item"} onClick={() => toggleSettingsSection("merchant")} aria-expanded={activeSettingsSection === "merchant"} aria-controls="settings-merchant"><Icon name="merchant" size={19} /><span><strong>Merchant tools</strong><small>Merchant profile and Autopay</small></span><span className="settings-menu-chevron" aria-hidden="true">{activeSettingsSection === "merchant" ? "−" : "+"}</span></button>
+        <button type="button" className={activeSettingsSection === "delete" ? "settings-option-menu-item active danger" : "settings-option-menu-item danger"} onClick={() => toggleSettingsSection("delete")} aria-expanded={activeSettingsSection === "delete"} aria-controls="settings-delete"><Icon name="alert" size={19} /><span><strong>Delete account</strong><small>Permanent account action</small></span><span className="settings-menu-chevron" aria-hidden="true">{activeSettingsSection === "delete" ? "−" : "+"}</span></button>
+      </nav>
+
+      <section id="settings-profile" hidden={activeSettingsSection !== "profile"} className="panel more-settings-card">
         <div className="panel-heading compact"><div><div className="section-kicker">PERSONAL INFORMATION</div><h2>Profile & wallet handle</h2></div><Icon name="user" size={20} /></div>
         <form className="more-form" onSubmit={(event) => void saveProfile(event)}>
           <label className="field-label" htmlFor="more-display-name">Display name</label>
@@ -396,7 +401,7 @@ export default function More({
         </form>
       </section>
 
-      <section id="settings-account-management" className="panel more-settings-card">
+      <section id="settings-account-management" hidden={activeSettingsSection !== "accounts"} className="panel more-settings-card">
         <div className="panel-heading compact"><div><div className="section-kicker">ACCOUNT MANAGEMENT</div><h2>Accounts & switching</h2></div><Icon name="wallet" size={20} /></div>
         <p className="more-helper">Saved accounts on this device: <strong>{[...new Set([...savedIds, ...(accountId ? [accountId] : [])])].length}</strong>. Passwords are never stored on this device. Each switch reauthenticates to protect your wallet.</p>
         <form className="more-inline-form" onSubmit={addSavedAccount}>
@@ -420,7 +425,7 @@ export default function More({
         </form>}
       </section>
 
-      <section id="settings-security" className="panel more-settings-card">
+      <section id="settings-security" hidden={activeSettingsSection !== "security"} className="panel more-settings-card">
         <div className="panel-heading compact"><div><div className="section-kicker">SECURITY</div><h2>Password & payment MPIN</h2></div><Icon name="shield" size={20} /></div>
         <p className="more-helper">Payments can be authorized with your account password or a six-digit MPIN. You can also register a passkey in the Passkeys & biometric sign-in section; biometric verification depends on your device and passkey provider.</p>
         <form className="more-form" onSubmit={(event) => void changePassword(event)}>
@@ -444,7 +449,7 @@ export default function More({
         </form>
       </section>
 
-      <section id="settings-passkeys" className="panel more-settings-card more-passkey-card">
+      <section id="settings-passkeys" hidden={activeSettingsSection !== "passkeys"} className="panel more-settings-card more-passkey-card">
         <div className="panel-heading compact"><div><div className="section-kicker">DEVICE BIOMETRICS</div><h2>Passkeys & biometric sign-in</h2></div><Icon name="fingerprint" size={20} /></div>
         <p className="more-helper">Register a passkey with your device's native verification prompt. Depending on the device and passkey provider, it may use fingerprint, face recognition, or the device screen lock. Subtle Pay stores the public key and verification metadata—not your device's private key.</p>
         {!isPasskeySupported() && <p className="inline-notice">This browser or origin does not support WebAuthn passkeys. Use HTTPS on your real domain, or localhost for local development.</p>}
@@ -472,7 +477,7 @@ export default function More({
         </form>}
       </section>
 
-      <section id="settings-sessions" className="panel more-settings-card">
+      <section id="settings-sessions" hidden={activeSettingsSection !== "sessions"} className="panel more-settings-card">
         <div className="panel-heading compact"><div><div className="section-kicker">ACTIVE SESSIONS</div><h2>Devices & login access</h2></div><Icon name="smartphone" size={20} /></div>
         <p className="more-helper">Revoke other sessions you no longer recognize. Session records are logged by the backend.</p>
         {sessions.length === 0 ? <p className="more-empty-copy">No other active sessions are listed.</p> : <div className="more-session-list">{sessions.map((session) => <article className="more-session-row" key={session.sessionId}>
@@ -482,7 +487,7 @@ export default function More({
         </article>)}</div>}
       </section>
 
-      <section id="settings-login-history" className="panel more-settings-card">
+      <section id="settings-login-history" hidden={activeSettingsSection !== "history"} className="panel more-settings-card">
         <div className="panel-heading compact"><div><div className="section-kicker">RECENT ACCESS</div><h2>Login history</h2></div><Icon name="clock" size={20} /></div>
         <p className="more-helper">Recent login events for this account. Failed attempts before the account is identified may not be linked to this history.</p>
         {loginHistory.length === 0 ? <p className="more-empty-copy">No login events are available yet.</p> : <div className="more-login-list">
@@ -493,7 +498,7 @@ export default function More({
         </div>}
       </section>
 
-      <section id="settings-currency" className="panel more-settings-card">
+      <section id="settings-currency" hidden={activeSettingsSection !== "currency"} className="panel more-settings-card">
         <div className="panel-heading compact"><div><div className="section-kicker">PREFERENCES</div><h2>Display currency</h2></div><Icon name="globe" size={20} /></div>
         <form className="more-form" onSubmit={(event) => void saveCurrency(event)}>
           <label className="field-label" htmlFor="more-currency">Default display / quote currency</label>
@@ -508,14 +513,14 @@ export default function More({
         <p className="more-helper">This controls displayed values and quotes. Monad Testnet transfers still settle in MON; this preference does not by itself change the settlement asset.</p>
       </section>
 
-      {merchantEnabled && merchant && <section className="panel more-settings-card more-merchant-dashboard-card">
+      {activeSettingsSection === "merchant" && merchantEnabled && merchant && <section hidden={activeSettingsSection !== "merchant"} className="panel more-settings-card more-merchant-dashboard-card">
         <div className="panel-heading compact"><div><div className="section-kicker">MERCHANT ACCOUNT</div><h2>Merchant wallet controls</h2></div><Icon name="merchant" size={20} /></div>
         <div className="merchant-profile-summary"><div><strong>{merchant.publicName}{merchant.status === "approved" && <span className="merchant-verified-badge more-profile-verified" title="Verified merchant">✓ Verified</span>}</strong><small>{merchant.category} · {merchant.status === "approved" ? "Verified" : merchant.status === "suspended" ? "Suspended" : "Awaiting verification"}</small></div><span className={merchant.status === "approved" ? "merchant-verified-badge" : "status-pill neutral"}>{merchant.status === "approved" ? "✓ Verified" : "Unverified"}</span></div>
         <p className="more-helper">Manage your public merchant profile, payment QR and Autopay application status in Merchant Centre. Verification remains controlled by Subtle Pay review.</p>
         <button type="button" className="primary-button wide-button" onClick={() => onOpenMerchantCentre?.()}>Open Merchant Centre <Icon name="arrow-up-right" size={16} /></button>
       </section>}
 
-      <section id="settings-merchant" className="panel more-settings-card">
+      <section id="settings-merchant" hidden={activeSettingsSection !== "merchant"} className="panel more-settings-card">
         <div className="panel-heading compact"><div><div className="section-kicker">MERCHANT TOOLS</div><h2>Merchant profile & Autopay</h2></div><Icon name="merchant" size={20} /></div>
         {merchantEnabled && merchant ? <div className="merchant-profile-summary"><div><strong>{merchant.publicName}</strong><small>{merchant.category} · {merchant.status}</small></div><span className={merchant.status === "approved" ? "merchant-verified-badge" : "status-pill neutral"}>{merchant.status === "approved" ? "✓ Verified" : "Not verified"}</span></div>
           : <form className="more-form" onSubmit={(event) => void enableMerchant(event)}>
@@ -533,7 +538,7 @@ export default function More({
         {applications.length > 0 && <div className="more-application-list"><h3>Your applications</h3>{applications.map((application) => <article key={application.id}><div><strong>{application.status === "pending" ? "Pending review" : application.status === "approved" ? "Approved" : "Not approved"}</strong><small>{time(application.createdAt)}</small>{application.reviewNote && <small>{application.reviewNote}</small>}</div><span className={application.status === "approved" ? "status-pill success" : application.status === "rejected" ? "status-pill warning" : "status-pill neutral"}>{application.status}</span></article>)}</div>}
       </section>
 
-      <section id="settings-delete" className="panel more-danger-zone">
+      <section id="settings-delete" hidden={activeSettingsSection !== "delete"} className="panel more-danger-zone">
         <div className="panel-heading compact"><div><div className="section-kicker">IRREVERSIBLE ACTION</div><h2>Delete account</h2></div><Icon name="alert" size={20} /></div>
         <p>Deletion revokes sessions, releases your handle, removes the permanent QR record, and destroys the encrypted wallet signing key. Existing transaction records remain for audit history. This cannot be undone.</p>
         <form className="more-form" onSubmit={(event) => void performDelete(event)}>
