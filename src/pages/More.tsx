@@ -16,6 +16,7 @@ import {
   removeAccountMpin,
   revokeAccountSession,
   setAccountMpin,
+  switchSavedAccount,
   updateAccountCurrency,
   updateAccountProfile,
   type ActiveAccountSession,
@@ -170,6 +171,26 @@ export default function More({
     setSavedIds(next); saveIds(next); setNewAccountId("");
     report("success", "Account ID saved on this device. Its password is not stored.");
   }
+  async function switchSavedAccountOnDevice(id: string) {
+    setBusy("switch:" + id); setNotice(null);
+    try {
+      const switched = await switchSavedAccount(id);
+      if (!switched) {
+        setSwitchingId(id);
+        setSwitchPassword("");
+        report("error", "This device has no active saved session for that account. Enter its password once to sign in and save a protected session.");
+        return;
+      }
+      const next = await getAccountProfile();
+      const nextIds = [...new Set([...savedIds, accountId, next.accountId].filter(Boolean))].slice(-10);
+      setSavedIds(nextIds); saveIds(nextIds);
+      setSwitchPassword(""); setSwitchingId("");
+      onAccountSwitched?.(next);
+      report("success", "Saved account switched securely. Review the active wallet before paying.");
+    } catch (cause) { report("error", cause instanceof Error ? cause.message : "Could not switch saved accounts."); }
+    finally { setBusy(""); }
+  }
+
   async function switchAccount(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const id = switchingId.trim().toUpperCase();
@@ -293,7 +314,7 @@ export default function More({
         <form className="more-form" onSubmit={(event) => void saveProfile(event)}>
           <label className="field-label" htmlFor="more-display-name">Display name</label>
           <input id="more-display-name" className="form-input" value={displayName} onChange={(event) => setDisplayName(event.target.value)} maxLength={80} placeholder="Your name" autoComplete="name" />
-          <div className="more-handle-card"><span>Permanent wallet handle</span><strong>{handle}</strong><small>Assigned on first profile save and stays with this account until you delete it.</small></div>
+          <div className="more-handle-card"><span>Permanent wallet handle</span><strong>{handle}</strong><small>You can change this handle below after password confirmation. Older handles stay reserved and keep resolving to this wallet.</small></div>
           <label className="field-label" htmlFor="more-country">Country</label>
           <select id="more-country" className="form-select" value={country} onChange={(event) => setCountry(event.target.value)}>
             <option value="">Select your country</option>
@@ -326,7 +347,7 @@ export default function More({
             <div className="saved-account-row" key={id}>
               <span className="saved-account-icon"><Icon name={id === accountId ? "check-circle" : "wallet"} size={17} /></span>
               <span className="saved-account-copy"><strong>{id === accountId ? "Current account" : "Saved account"}</strong><small>{id}</small></span>
-              {id !== accountId && <button type="button" className="secondary-button" onClick={() => { setSwitchingId(id); setSwitchPassword(""); }} disabled={Boolean(busy)}>Switch</button>}
+              {id !== accountId && <button type="button" className="secondary-button" onClick={() => { setSwitchingId(id); setSwitchPassword(""); void switchSavedAccountOnDevice(id); }} disabled={Boolean(busy)}>Switch</button>}
             </div>
           ))}
         </div>
@@ -340,7 +361,7 @@ export default function More({
 
       <section className="panel more-settings-card">
         <div className="panel-heading compact"><div><div className="section-kicker">SECURITY</div><h2>Password & payment MPIN</h2></div><Icon name="shield" size={20} /></div>
-        <p className="more-helper">Every payment must be authorized with your account password or a six-digit MPIN. Device biometrics/passkeys are not enabled yet.</p>
+        <p className="more-helper">Every payment must be authorized with your account password or a six-digit MPIN. MPIN is supported for payments. Fingerprint and face unlock are not enabled yet because they require real passkey enrollment and server-side signature verification; Settings never simulates them with a toggle.</p>
         <form className="more-form" onSubmit={(event) => void changePassword(event)}>
           <h3>Change password</h3>
           <label className="field-label" htmlFor="more-current-password">Current password</label>
