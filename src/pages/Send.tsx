@@ -437,6 +437,8 @@ export default function Send({
     }
   }
 
+  const qrDisplayAlias = accountAlias || shareQrAlias;
+
   return (
     <div className="page-stack inner-page send-page">
       <button
@@ -486,7 +488,7 @@ export default function Send({
         {!walletAddress ? <p className="small-muted">Sign in to prepare your receiving QR.</p> : shareQrPayload ? <>
           <div className="send-share-qr-preview">
             <QRCodeSVG ref={shareQrRef} value={shareQrPayload} size={196} level="H" includeMargin />
-            <strong>{accountAlias ? accountAlias.replace(/^@/, "").replace(/@monad$/i, "") + "@monad" : displayName.trim() || "Subtle Pay"}</strong>
+            <strong>{qrDisplayAlias ? qrDisplayAlias.replace(/^@/, "").replace(/@monad$/i, "") + "@monad" : displayName.trim() || "Subtle Pay"}</strong>
             <span>{walletAddress}</span>
             <small>Monad Testnet · Chain ID 10143</small>
           </div>
