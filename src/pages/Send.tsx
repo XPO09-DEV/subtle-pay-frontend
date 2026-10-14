@@ -7,6 +7,7 @@ import QRScanner from "../components/QRScanner";
 import {
   authorizePayment,
   getAccountRates,
+  getSupportedCurrencies,
   getMpinStatus,
   submitAccountPayment,
   type SendPaymentResult,
@@ -19,12 +20,14 @@ import {
 } from "../services/walletService";
 
 import type { ScannedRecipient } from "../utils/qr";
+import { CURRENCIES } from "../data/currencies";
 
-type Currency = "INR" | "USD";
+type Currency = string;
 
 type SendProps = {
   onBack: () => void;
   initialRecipient?: string;
+  preferredCurrency?: string;
   walletAddress?: string | null;
   walletChainId?: string | null;
   walletAssets?: unknown[];
@@ -77,13 +80,15 @@ function normalizeChainId(
 export default function Send({
   onBack,
   initialRecipient = "",
+  preferredCurrency = "USD",
   walletAddress = null,
   onTransactionSubmitted,
 }: SendProps) {
   // Form state
   const [recipient, setRecipient] = useState(initialRecipient);
   const [amount, setAmount] = useState("");
-  const [currency, setCurrency] = useState<Currency>("INR");
+  const [currency, setCurrency] = useState<Currency>(preferredCurrency || "USD");
+  const [currencies, setCurrencies] = useState<string[]>(["USD", "INR"]);
   const [note, setNote] = useState("");
 
   // QR scanner state
@@ -102,6 +107,18 @@ export default function Send({
   const [authMethod, setAuthMethod] = useState<"password" | "mpin">("password");
   const [authSecret, setAuthSecret] = useState("");
   const [authError, setAuthError] = useState("");
+
+  useEffect(() => {
+    let alive = true;
+    void getSupportedCurrencies().then((items) => {
+      if (!alive || items.length === 0) return;
+      setCurrencies(CURRENCIES.filter((option) => items.includes(option.code.toUpperCase())).map((option) => option.code.toUpperCase()));
+      if (preferredCurrency && items.includes(preferredCurrency) && CURRENCIES.some((option) => option.code.toUpperCase() === preferredCurrency)) setCurrency(preferredCurrency);
+    }).catch(() => {
+      if (alive) setCurrencies(["USD", "INR"]);
+    });
+    return () => { alive = false; };
+  }, [preferredCurrency]);
 
   // Keep the recipient synchronized with navigation into this page.
   useEffect(() => {
@@ -170,7 +187,7 @@ export default function Send({
         const verified = await verifyPayQr(scanned.payload);
         if (!verified.valid || verified.chainId !== 10143 || !isValidEvmAddress(verified.address)) throw new Error("QR verification failed.");
         setRecipient(verified.address);
-        if (verified.amount) { setAmount(verified.amount); if (verified.currency === "USD" || verified.currency === "INR") setCurrency(verified.currency); }
+        if (verified.amount) { setAmount(verified.amount); if (verified.currency && currencies.includes(verified.currency)) setCurrency(verified.currency); }
         setResult(null); setNotice("");
         setScanNotice(`Verified Subtle Pay QR for Monad Testnet${verified.amount ? ` · ${verified.amount} ${verified.currency ?? "USD"}` : ""}. Review the recipient and amount before sending.`);
       } catch (error) { setScanNotice(error instanceof Error ? error.message : "This payment QR could not be verified by the backend."); }
@@ -193,9 +210,7 @@ export default function Send({
 
   const estimatedMon =
     rates && validAmount
-      ? (currency === "INR"
-          ? amountNumber / rates.usdLocal
-          : amountNumber) / rates.tokenUsd
+      ? amountNumber / rates.usdLocal / rates.tokenUsd
       : null;
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -409,8 +424,8 @@ export default function Send({
               setNotice("");
             }}
           >
-            <option value="INR">Indian rupee (INR)</option>
-            <option value="USD">US dollar (USD)</option>
+            {currency && !currencies.includes(currency) && <option value={currency}>Current saved preference — {currency}</option>}
+            {currencies.map((code) => { const option = CURRENCIES.find((item) => item.code.toUpperCase() === code); return <option value={code} key={code}>{option ? `${option.symbol} ${option.name} (${code})` : code}</option>; })}
           </select>
 
           <label
@@ -476,12 +491,7 @@ export default function Send({
           <p className="account-gate-hint">
             {rates
               ? `Quote updated with the rate service. 1 MON ≈ ${
-                  currency === "INR"
-                    ? `${fmt(
-                        rates.tokenUsd * rates.usdLocal,
-                        2
-                      )} INR`
-                    : `$${fmt(rates.tokenUsd, 4)}`
+                  `${fmt(rates.tokenUsd * rates.usdLocal, 4)} ${currency}`
                 }. The final sent amount is returned by the backend.`
               : ratesError || "Loading a current estimate…"}
           </p>

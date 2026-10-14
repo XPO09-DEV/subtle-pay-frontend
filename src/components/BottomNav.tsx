@@ -6,7 +6,7 @@ const items: { id: PageId; label: string; icon: IconName }[] = [
   { id: "wallet", label: "Wallet", icon: "wallet" },
   { id: "activity", label: "Activity", icon: "activity" },
   { id: "notifications", label: "Alerts", icon: "bell" },
-  { id: "more", label: "More", icon: "more" },
+  { id: "more", label: "Settings", icon: "settings" },
 ];
 
 export default function BottomNav({ active, onNavigate }: { active: PageId; onNavigate: (page: PageId) => void }) {

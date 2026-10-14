@@ -19,7 +19,7 @@ export const CURRENCIES: CurrencyOption[] = [
   { code: "php", name: "Philippine Peso", symbol: "₱" },
   { code: "thb", name: "Thai Baht", symbol: "฿" },
   { code: "gbp", name: "British Pound", symbol: "£" },
-  { code: "twd", name: "New Taiwan Dollar", symbol: "NT$" },
+  { code: "bdt", name: "Bangladeshi Taka", symbol: "৳" },
   { code: "aud", name: "Australian Dollar", symbol: "A$" },
   { code: "cad", name: "Canadian Dollar", symbol: "C$" },
   { code: "sgd", name: "Singapore Dollar", symbol: "S$" },

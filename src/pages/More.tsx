@@ -16,6 +16,7 @@ import {
   removeAccountMpin,
   revokeAccountSession,
   setAccountMpin,
+  switchSavedAccount,
   updateAccountCurrency,
   updateAccountProfile,
   type ActiveAccountSession,
@@ -23,7 +24,9 @@ import {
   type MerchantAutopayApplication,
   type MerchantProfile,
 } from "../services/accountService";
-import { getSupportedCurrencies } from "../services/accountService";
+import { getSupportedCurrencies, getSupportedCountries, updateAccountAlias } from "../services/accountService";
+import "./More.css";
+import { CURRENCIES } from "../data/currencies";
 
 type MoreProps = {
   accountId?: string;
@@ -32,14 +35,21 @@ type MoreProps = {
   onLogout: () => void;
   onAccountSwitched?: (profile: AccountProfile) => void;
   onProfileUpdated?: (profile: AccountProfile) => void;
+  onOpenMerchantCentre?: () => void;
 };
 type Notice = { kind: "success" | "error"; text: string };
 const SAVED_ACCOUNTS_KEY = "subtlepay.saved.account-ids.v1";
 
+function normalizeAccountIdForUi(value: string): string {
+  return value.trim().toUpperCase().replace(/[\\s-]/g, "");
+}
 function readSavedAccounts(): string[] {
   try {
     const parsed: unknown = JSON.parse(window.localStorage.getItem(SAVED_ACCOUNTS_KEY) ?? "[]");
-    return Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === "string").slice(0, 10) : [];
+    return Array.isArray(parsed)
+      ? [...new Set(parsed.filter((value): value is string => typeof value === "string")
+          .map(normalizeAccountIdForUi).filter((value) => value.length === 27))].slice(0, 10)
+      : [];
   } catch { return []; }
 }
 function saveIds(ids: string[]) {
@@ -54,13 +64,44 @@ function shortAddress(value: string | null | undefined): string {
   return value ? value.slice(0, 10) + "…" + value.slice(-8) : "Wallet unavailable";
 }
 
+function pixelAvatarUrl(name: string, account: string): string {
+  const seedText = (account + ":" + name.trim().toLowerCase()).slice(0, 180);
+  let seed = 2166136261;
+  for (let i = 0; i < seedText.length; i++) seed = Math.imul(seed ^ seedText.charCodeAt(i), 16777619) >>> 0;
+  const palette = ["#ef8354", "#6c63ff", "#24a19c", "#d94f70", "#ba8b45", "#3e7cb1", "#9a6dd7"];
+  const background = palette[seed % palette.length];
+  const hair = ["#1d2433", "#38251d", "#f4c95d", "#7b3f26", "#e8e8e8"][(seed >>> 5) % 5];
+  const skin = ["#f5c8a5", "#df9b73", "#9b6246", "#f1d3ba"][(seed >>> 9) % 4];
+  const shirt = palette[(seed >>> 13) % palette.length];
+  const cells: string[] = [];
+  const put = (x:number,y:number,color:string) => cells.push('<rect x="'+x+'" y="'+y+'" width="1" height="1" fill="'+color+'"/>');
+  for(let x=0;x<8;x++){put(x,0,background);put(x,7,background);}
+  for(let y=1;y<7;y++){put(0,y,background);put(7,y,background);}
+  [2,3,4,5].forEach(x=>put(x,1,hair));
+  [1,2,3,4,5,6].forEach(x=>put(x,2,hair));
+  [1,6].forEach(x=>put(x,3,hair));
+  [2,3,4,5].forEach(x=>put(x,3,skin));
+  [2,5].forEach(x=>put(x,4,hair));
+  [3,4].forEach(x=>put(x,4,skin));
+  [3,4].forEach(x=>put(x,5,skin));
+  [2,5].forEach(x=>put(x,5,shirt));
+  [1,2,3,4,5,6].forEach(x=>put(x,6,shirt));
+  put(2,3,"#202431"); put(5,3,"#202431");
+  put(3,4,"#ffffff");
+  const svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8" shape-rendering="crispEdges">'+cells.join("")+'</svg>';
+  return "data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg);
+}
+
 export default function More({
-  accountId = "", walletAddress = null, profile = null, onLogout, onAccountSwitched, onProfileUpdated,
+  accountId = "", walletAddress = null, profile = null, onLogout, onAccountSwitched, onProfileUpdated, onOpenMerchantCentre,
 }: MoreProps) {
   const [displayName, setDisplayName] = useState(profile?.displayName ?? "");
-  const [region, setRegion] = useState(profile?.region ?? "");
-  const [shareRegion, setShareRegion] = useState(Boolean(profile?.regionConsentAt));
+  const [country, setCountry] = useState(profile?.country ?? "");
+  const [countries, setCountries] = useState<Array<{ code: string; name: string }>>([]);
+  const [aliasName, setAliasName] = useState(profile?.alias ?? "");
+  const [aliasPassword, setAliasPassword] = useState("");
   const [currency, setCurrency] = useState(profile?.currency ?? "USD");
+  const [currencyPassword, setCurrencyPassword] = useState("");
   const [currencies, setCurrencies] = useState<string[]>(["USD", "INR"]);
   const [savedIds, setSavedIds] = useState<string[]>(readSavedAccounts);
   const [newAccountId, setNewAccountId] = useState("");
@@ -85,7 +126,7 @@ export default function More({
   const [busy, setBusy] = useState("");
   const [notice, setNotice] = useState<Notice | null>(null);
 
-  useEffect(() => { setDisplayName(profile?.displayName ?? ""); setRegion(profile?.region ?? ""); setShareRegion(Boolean(profile?.regionConsentAt)); setCurrency(profile?.currency ?? "USD"); setMerchantName(profile?.displayName ?? ""); }, [profile?.displayName, profile?.region, profile?.regionConsentAt, profile?.currency]);
+  useEffect(() => { setDisplayName(profile?.displayName ?? ""); setCountry(profile?.country ?? ""); setAliasName(profile?.alias ?? ""); setCurrency(profile?.currency ?? "USD"); setMerchantName(profile?.displayName ?? ""); }, [profile?.displayName, profile?.country, profile?.alias, profile?.currency]);
   useEffect(() => {
     const ids = [...new Set([...savedIds, ...(accountId ? [accountId] : [])])].slice(0, 10);
     setSavedIds(ids);
@@ -94,7 +135,8 @@ export default function More({
   }, [accountId]);
   useEffect(() => {
     let alive = true;
-    void getSupportedCurrencies().then((items) => { if (alive && items.length) setCurrencies(items); }).catch(() => undefined);
+    void getSupportedCurrencies().then((items) => { if (alive && items.length) setCurrencies(CURRENCIES.filter((option) => items.includes(option.code.toUpperCase())).map((option) => option.code.toUpperCase())); }).catch(() => undefined);
+    void getSupportedCountries().then((items) => { if (alive && items.length) setCountries(items); }).catch(() => undefined);
     void getMpinStatus().then((value) => { if (alive) setMpinEnabled(value.enabled); }).catch(() => undefined);
     void getAccountSessions().then((items) => { if (alive) setSessions(items); }).catch(() => undefined);
     void getAccountLoginHistory(20).then((items) => { if (alive) setLoginHistory(items); }).catch(() => undefined);
@@ -107,37 +149,59 @@ export default function More({
   async function saveProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setBusy("profile"); setNotice(null);
     try {
-      await updateAccountProfile({ displayName: displayName.trim() || null, region: shareRegion ? region.trim() || undefined : null, shareRegion });
+      await updateAccountProfile({ displayName: displayName.trim() || null, country: country || null });
       const next = await getAccountProfile();
-      setDisplayName(next.displayName ?? ""); setRegion(next.region ?? ""); setShareRegion(Boolean(next.regionConsentAt));
+      setDisplayName(next.displayName ?? ""); setCountry(next.country ?? ""); setAliasName(next.alias ?? "");
       onProfileUpdated?.(next);
       report("success", next.alias ? `Profile saved. Your permanent handle is ${next.alias}@monad.` : "Profile saved.");
     } catch (cause) { report("error", cause instanceof Error ? cause.message : "Profile could not be saved."); }
     finally { setBusy(""); }
   }
-  async function saveCurrency(value: string) {
+  async function saveCurrency(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!currencyPassword) { report("error", "Enter your account password to confirm this currency change."); return; }
     setBusy("currency"); setNotice(null);
     try {
-      await updateAccountCurrency(value);
-      setCurrency(value);
+      await updateAccountCurrency(currency, currencyPassword);
+      setCurrencyPassword("");
       const next = await getAccountProfile();
       onProfileUpdated?.(next);
-      report("success", "Display currency updated.");
+      report("success", "Display currency preference updated after password confirmation.");
     } catch (cause) { report("error", cause instanceof Error ? cause.message : "Currency could not be updated."); }
     finally { setBusy(""); }
   }
   function addSavedAccount(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const id = newAccountId.trim().toUpperCase();
-    if (!id || id.length < 10 || id.length > 40) { report("error", "Enter a valid Subtle Pay account ID."); return; }
+    const id = normalizeAccountIdForUi(newAccountId);
+    if (id.length !== 27) { report("error", "Enter a complete 27-character Subtle Pay account ID."); return; }
     if (savedIds.includes(id)) { report("error", "That account is already saved on this device."); return; }
     const next = [...savedIds, id].slice(-10);
     setSavedIds(next); saveIds(next); setNewAccountId("");
     report("success", "Account ID saved on this device. Its password is not stored.");
   }
+  async function switchSavedAccountOnDevice(id: string) {
+    setBusy("switch:" + id); setNotice(null);
+    try {
+      const switched = await switchSavedAccount(id);
+      if (!switched) {
+        setSwitchingId(id);
+        setSwitchPassword("");
+        report("error", "This device has no active saved session for that account. Enter its password once to sign in and save a protected session.");
+        return;
+      }
+      const next = await getAccountProfile();
+      const nextIds = [...new Set([...savedIds, accountId, next.accountId].filter(Boolean))].slice(-10);
+      setSavedIds(nextIds); saveIds(nextIds);
+      setSwitchPassword(""); setSwitchingId("");
+      onAccountSwitched?.(next);
+      report("success", "Saved account switched securely. Review the active wallet before paying.");
+    } catch (cause) { report("error", cause instanceof Error ? cause.message : "Could not switch saved accounts."); }
+    finally { setBusy(""); }
+  }
+
   async function switchAccount(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const id = switchingId.trim().toUpperCase();
+    const id = normalizeAccountIdForUi(switchingId);
     if (!switchPassword) { report("error", "Enter the password for this account to switch."); return; }
     setBusy("switch:" + id); setNotice(null);
     try {
@@ -173,6 +237,20 @@ export default function More({
     } catch (cause) { report("error", cause instanceof Error ? cause.message : "MPIN could not be disabled."); }
     finally { setBusy(""); }
   }
+  async function saveAlias(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setBusy("alias"); setNotice(null);
+    try {
+      const result = await updateAccountAlias(aliasName.trim(), aliasPassword);
+      const next = await getAccountProfile();
+      setAliasName(next.alias ?? result.alias);
+      setAliasPassword("");
+      onProfileUpdated?.(next);
+      report("success", result.previousAlias && result.previousAlias !== result.alias ? "Wallet handle updated. Your previous handle remains reserved and continues resolving to this wallet." : result.previousAlias === result.alias ? "That wallet handle is already active." : "Wallet handle assigned.");
+    } catch (cause) { report("error", cause instanceof Error ? cause.message : "Wallet handle could not be changed."); }
+    finally { setBusy(""); }
+  }
+
   async function changePassword(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (newPassword !== confirmPassword) { report("error", "New passwords do not match."); return; }
@@ -229,11 +307,11 @@ export default function More({
   const handle = profile?.alias ? `${profile.alias}@monad` : "Not assigned yet";
   return (
     <div className="page-stack inner-page more-page">
-      <div className="page-intro"><div><div className="section-kicker">YOUR ACCOUNT</div><h1>More</h1><p>Profile, account access, security and preferences.</p></div><span className="page-icon-bubble"><Icon name="settings" size={20} /></span></div>
+      <div className="page-intro"><div><div className="section-kicker">YOUR ACCOUNT</div><h1>Settings</h1><p>Profile, account access, security and preferences.</p></div><span className="page-icon-bubble"><Icon name="settings" size={20} /></span></div>
 
       <section className="profile-panel more-profile-summary">
-        <span className="profile-avatar"><Icon name="user" size={22} /></span>
-        <div className="profile-copy"><strong>{profile?.displayName || handle}</strong><span>{profile?.accountId || accountId || "Signed-in account"}</span><small>{shortAddress(walletAddress)} · Monad Testnet</small></div>
+        <span className="profile-avatar more-pixel-avatar"><img src={pixelAvatarUrl(profile?.displayName || handle, accountId || profile?.accountId || "wallet")} alt={`${(profile?.displayName || "Wallet").split(/\\s+/)[0]} pixel-art avatar`} /></span>
+        <div className="profile-copy"><strong>{profile?.displayName || handle}{merchant?.status === "approved" && <span className="merchant-verified-badge more-profile-verified" title="Verified merchant" aria-label="Verified merchant">✓</span>}</strong><span>{profile?.accountId || accountId || "Signed-in account"}</span><small>{shortAddress(walletAddress)} · Monad Testnet</small></div>
         <span className="profile-status-dot" />
       </section>
 
@@ -244,17 +322,30 @@ export default function More({
         <form className="more-form" onSubmit={(event) => void saveProfile(event)}>
           <label className="field-label" htmlFor="more-display-name">Display name</label>
           <input id="more-display-name" className="form-input" value={displayName} onChange={(event) => setDisplayName(event.target.value)} maxLength={80} placeholder="Your name" autoComplete="name" />
-          <div className="more-handle-card"><span>Permanent wallet handle</span><strong>{handle}</strong><small>Assigned on first profile save and stays with this account until you delete it.</small></div>
-          <label className="field-label" htmlFor="more-region">Optional region</label>
-          <input id="more-region" className="form-input" value={region} onChange={(event) => setRegion(event.target.value)} maxLength={80} placeholder="City or region (optional)" />
-          <label className="more-consent-row"><input type="checkbox" checked={shareRegion} onChange={(event) => setShareRegion(event.target.checked)} /><span><strong>Share my region</strong><small>Only shared when you explicitly opt in.</small></span></label>
+          <div className="more-handle-card"><span>Permanent wallet handle</span><strong>{handle}</strong><small>You can change this handle below after password confirmation. Older handles stay reserved and keep resolving to this wallet.</small></div>
+          <label className="field-label" htmlFor="more-country">Country</label>
+          <select id="more-country" className="form-select" value={country} onChange={(event) => setCountry(event.target.value)}>
+            <option value="">Select your country</option>
+            {countries.map((item) => <option key={item.code} value={item.code}>{item.name}</option>)}
+          </select>
+          <p className="more-helper">Country is saved as a two-letter ISO country code. It is not published as a public location.</p>
           <button className="primary-button wide-button" type="submit" disabled={busy === "profile"}>{busy === "profile" ? "Saving…" : "Save profile"}</button>
+        </form>
+        <div className="more-divider" />
+        <h3>Wallet alias</h3>
+        <p className="more-helper">Your previous handle stays reserved and continues resolving to your wallet after a rename.</p>
+        <form className="more-form" onSubmit={(event) => void saveAlias(event)}>
+          <label className="field-label" htmlFor="more-alias">Alias (3–20 letters, numbers or underscores)</label>
+          <div className="more-inline-control"><input id="more-alias" className="form-input" value={aliasName} onChange={(event) => setAliasName(event.target.value.toLowerCase().replace(/^@/, "").replace(/@monad$/, ""))} pattern="[a-zA-Z0-9_]{3,20}" minLength={3} maxLength={20} required autoComplete="off" /><span className="more-alias-suffix">@monad</span></div>
+          <label className="field-label" htmlFor="more-alias-password">Confirm account password</label>
+          <input id="more-alias-password" className="form-input" type="password" value={aliasPassword} onChange={(event) => setAliasPassword(event.target.value)} autoComplete="current-password" required />
+          <button type="submit" className="secondary-button wide-button" disabled={Boolean(busy)}>{busy === "alias" ? "Updating…" : "Update wallet alias"}</button>
         </form>
       </section>
 
       <section className="panel more-settings-card">
         <div className="panel-heading compact"><div><div className="section-kicker">ACCOUNT MANAGEMENT</div><h2>Accounts & switching</h2></div><Icon name="wallet" size={20} /></div>
-        <p className="more-helper">Save account IDs on this device and switch by authenticating again. Passwords are never stored here.</p>
+        <p className="more-helper">Saved accounts on this device: <strong>{[...new Set([...savedIds, ...(accountId ? [accountId] : [])])].length}</strong>. Passwords are never stored on this device. Each switch reauthenticates to protect your wallet.</p>
         <form className="more-inline-form" onSubmit={addSavedAccount}>
           <label className="field-label" htmlFor="more-save-account">Add account ID</label>
           <div className="more-inline-control"><input id="more-save-account" className="form-input" value={newAccountId} onChange={(event) => setNewAccountId(event.target.value)} placeholder="Subtle Pay account ID" autoComplete="off" /><button type="submit" className="secondary-button">Save ID</button></div>
@@ -264,7 +355,7 @@ export default function More({
             <div className="saved-account-row" key={id}>
               <span className="saved-account-icon"><Icon name={id === accountId ? "check-circle" : "wallet"} size={17} /></span>
               <span className="saved-account-copy"><strong>{id === accountId ? "Current account" : "Saved account"}</strong><small>{id}</small></span>
-              {id !== accountId && <button type="button" className="secondary-button" onClick={() => { setSwitchingId(id); setSwitchPassword(""); }} disabled={Boolean(busy)}>Switch</button>}
+              {id !== accountId && <button type="button" className="secondary-button" onClick={() => { setSwitchingId(id); setSwitchPassword(""); void switchSavedAccountOnDevice(id); }} disabled={Boolean(busy)}>Switch</button>}
             </div>
           ))}
         </div>
@@ -278,7 +369,7 @@ export default function More({
 
       <section className="panel more-settings-card">
         <div className="panel-heading compact"><div><div className="section-kicker">SECURITY</div><h2>Password & payment MPIN</h2></div><Icon name="shield" size={20} /></div>
-        <p className="more-helper">Every payment must be authorized with your account password or a six-digit MPIN. Device biometrics/passkeys are not enabled yet.</p>
+        <p className="more-helper">Every payment must be authorized with your account password or a six-digit MPIN. MPIN is supported for payments. Fingerprint and face unlock are not enabled yet because they require real passkey enrollment and server-side signature verification; Settings never simulates them with a toggle.</p>
         <form className="more-form" onSubmit={(event) => void changePassword(event)}>
           <h3>Change password</h3>
           <label className="field-label" htmlFor="more-current-password">Current password</label>
@@ -323,12 +414,25 @@ export default function More({
 
       <section className="panel more-settings-card">
         <div className="panel-heading compact"><div><div className="section-kicker">PREFERENCES</div><h2>Display currency</h2></div><Icon name="globe" size={20} /></div>
-        <label className="field-label" htmlFor="more-currency">Default currency for estimates</label>
-        <select id="more-currency" className="form-select" value={currency} disabled={busy === "currency"} onChange={(event) => void saveCurrency(event.target.value)}>
-          {currencies.map((code) => <option value={code} key={code}>{code}</option>)}
-        </select>
-        <p className="more-helper">Currency changes affect display and estimates, not the Monad Testnet settlement asset.</p>
+        <form className="more-form" onSubmit={(event) => void saveCurrency(event)}>
+          <label className="field-label" htmlFor="more-currency">Default display / quote currency</label>
+          <select id="more-currency" className="form-select" value={currency} disabled={busy === "currency"} onChange={(event) => setCurrency(event.target.value)} required>
+            {currency && !currencies.includes(currency) && <option value={currency}>Current saved preference — {currency}</option>}
+            {currencies.map((code) => { const option = CURRENCIES.find((item) => item.code.toUpperCase() === code); return <option value={code} key={code}>{option ? `${option.symbol} ${option.name} (${code})` : code}</option>; })}
+          </select>
+          <label className="field-label" htmlFor="more-currency-password">Confirm account password to save</label>
+          <input id="more-currency-password" className="form-input" type="password" value={currencyPassword} onChange={(event) => setCurrencyPassword(event.target.value)} autoComplete="current-password" required />
+          <button className="primary-button wide-button" type="submit" disabled={busy === "currency"}>{busy === "currency" ? "Saving…" : "Save currency"}</button>
+        </form>
+        <p className="more-helper">This controls displayed values and quotes. Monad Testnet transfers still settle in MON; this preference does not by itself change the settlement asset.</p>
       </section>
+
+      {merchantEnabled && merchant && <section className="panel more-settings-card more-merchant-dashboard-card">
+        <div className="panel-heading compact"><div><div className="section-kicker">MERCHANT ACCOUNT</div><h2>Merchant wallet controls</h2></div><Icon name="merchant" size={20} /></div>
+        <div className="merchant-profile-summary"><div><strong>{merchant.publicName}{merchant.status === "approved" && <span className="merchant-verified-badge more-profile-verified" title="Verified merchant">✓ Verified</span>}</strong><small>{merchant.category} · {merchant.status === "approved" ? "Verified" : merchant.status === "suspended" ? "Suspended" : "Awaiting verification"}</small></div><span className={merchant.status === "approved" ? "merchant-verified-badge" : "status-pill neutral"}>{merchant.status === "approved" ? "✓ Verified" : "Unverified"}</span></div>
+        <p className="more-helper">Manage your public merchant profile, payment QR and Autopay application status in Merchant Centre. Verification remains controlled by Subtle Pay review.</p>
+        <button type="button" className="primary-button wide-button" onClick={() => onOpenMerchantCentre?.()}>Open Merchant Centre <Icon name="arrow-up-right" size={16} /></button>
+      </section>}
 
       <section className="panel more-settings-card">
         <div className="panel-heading compact"><div><div className="section-kicker">MERCHANT TOOLS</div><h2>Merchant profile & Autopay</h2></div><Icon name="merchant" size={20} /></div>

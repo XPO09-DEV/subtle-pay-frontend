@@ -255,12 +255,13 @@ export default function App() {
             displayName={displayName} onDisplayNameChange={saveDisplayName} walletAddress={walletAddress} walletAssets={walletAssets}
             walletStatus={walletStatus} walletError={walletError} onConnectWallet={connectWallet} onCopyAddress={copyWalletAddress}
             onRefreshWallet={() => { if (walletAddress) void refreshWallet(walletAddress, true); }} onDisconnectWallet={disconnectWallet} />}
-          {activePage === "send" && <Send onBack={() => { setPrefilledRecipient(""); setActivePage("wallet"); }} initialRecipient={prefilledRecipient}
+          {activePage === "send" && <Send onBack={() => { setPrefilledRecipient(""); setActivePage("wallet"); }} initialRecipient={prefilledRecipient} preferredCurrency={accountProfile?.currency ?? "USD"}
             walletAddress={walletAddress} walletChainId={walletChainId} walletAssets={walletAssets} onConnectWallet={connectWallet}
             onTransactionSubmitted={() => { if (walletAddress) void refreshWallet(walletAddress, true); }} />}
           {activePage === "receive" && <Receive walletAddress={walletAddress} walletChainId={walletChainId} displayName={displayName} onConnectWallet={connectWallet} />}
           {activePage === "merchant" && <Merchant />}
           {activePage === "more" && <More
+            onOpenMerchantCentre={() => setActivePage("merchant")}
             accountId={accountProfile.accountId}
             walletAddress={walletAddress}
             profile={accountProfile}

@@ -11,6 +11,7 @@ export interface AccountProfile {
   walletCreatedAt: number | null;
   region: string | null;
   regionConsentAt: number | null;
+  country: string | null;
 }
 
 export interface AccountSession {
@@ -29,6 +30,7 @@ interface ProfileUpdate {
   displayName?: string | null;
   region?: string | null;
   shareRegion?: boolean;
+  country?: string | null;
 }
 
 let accessToken: string | null = null;
@@ -120,6 +122,20 @@ export async function registerAccount(password: string): Promise<{ accountId: st
   return { accountId: result.accountId, walletAddress: result.address };
 }
 
+export async function switchSavedAccount(accountId: string): Promise<boolean> {
+  try {
+    const result = await rawRequest<AuthReply>("/auth/switch-saved", {
+      method: "POST", body: JSON.stringify({ accountId: accountId.trim().toUpperCase() }),
+    }, false);
+    if (!result.token) throw new Error("Saved-session response did not include an access token.");
+    accessToken = result.token;
+    return true;
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 401) return false;
+    throw error;
+  }
+}
+
 export async function loginAccount(accountId: string, password: string): Promise<void> {
   const result = await rawRequest<AuthReply>("/auth/login", {
     method: "POST", body: JSON.stringify({ accountId: accountId.trim(), password }),
@@ -130,7 +146,7 @@ export async function loginAccount(accountId: string, password: string): Promise
 
 export async function getAccountProfile(): Promise<AccountProfile> { return authenticatedRequest<AccountProfile>("/me"); }
 
-export async function updateAccountProfile(input: ProfileUpdate): Promise<Pick<AccountProfile, "displayName" | "alias" | "region" | "regionConsentAt">> {
+export async function updateAccountProfile(input: ProfileUpdate): Promise<Pick<AccountProfile, "displayName" | "alias" | "region" | "regionConsentAt" | "country">> {
   return authenticatedRequest("/me/profile", { method: "PUT", body: JSON.stringify(input) });
 }
 
@@ -188,7 +204,7 @@ export interface PaymentRecord {
 export interface SendPaymentInput {
   to: string;
   amount: string;
-  amountCurrency: "USD" | "INR";
+  amountCurrency: string;
   note?: string;
   asset: "MON";
   authorizationToken: string;
@@ -270,8 +286,18 @@ export async function verifyPayQr(payload: string): Promise<VerifiedPayQr> {
   return authenticatedRequest<VerifiedPayQr>("/qr/verify", { method: "POST", body: JSON.stringify({ payload }) });
 }
 
-export async function updateAccountCurrency(currency: string): Promise<{ currency: string }> {
-  return authenticatedRequest<{ currency: string }>("/me/currency", { method: "PUT", body: JSON.stringify({ currency }) });
+export async function updateAccountCurrency(currency: string, currentPassword: string): Promise<{ currency: string }> {
+  return authenticatedRequest<{ currency: string }>("/me/currency", { method: "PUT", body: JSON.stringify({ currency, currentPassword }) });
+}
+
+export interface SupportedCountry { code: string; name: string }
+export async function getSupportedCountries(): Promise<SupportedCountry[]> {
+  const result = await rawRequest<{ countries: SupportedCountry[] }>("/meta/countries", {}, false);
+  return result.countries;
+}
+
+export async function updateAccountAlias(alias: string, currentPassword: string): Promise<{ alias: string; previousAlias: string | null }> {
+  return authenticatedRequest("/me/alias", { method: "PUT", body: JSON.stringify({ alias, currentPassword }) });
 }
 
 export async function getSupportedCurrencies(): Promise<string[]> {
@@ -279,7 +305,7 @@ export async function getSupportedCurrencies(): Promise<string[]> {
   return result.currencies.map((currency) => currency.code.toUpperCase());
 }
 
-export async function getAccountRates(currency: "USD" | "INR" = "USD"): Promise<{ tokenUsd: number; usdLocal: number; currency: string; updatedAt: string }> {
+export async function getAccountRates(currency: string = "USD"): Promise<{ tokenUsd: number; usdLocal: number; currency: string; updatedAt: string }> {
   return rawRequest<{ tokenUsd: number; usdLocal: number; currency: string; updatedAt: string }>(`/rates?currency=${currency}`, {}, false);
 }
 export interface ActiveAccountSession {
@@ -316,7 +342,7 @@ export async function removeAccountMpin(currentPassword: string): Promise<{ enab
 export type PaymentAuthorizationIntent = {
   to: string;
   amount: string | number;
-  amountCurrency: "USD" | "INR";
+  amountCurrency: string;
   note?: string;
   asset?: "MON";
 };

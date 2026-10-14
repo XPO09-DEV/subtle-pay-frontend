@@ -4,7 +4,7 @@ import { copyText } from "../services/walletService";
 import type { SendPaymentResult } from "../services/accountService";
 import "./PaymentReceipt.css";
 
-type Currency = "INR" | "USD";
+type Currency = string;
 
 type Props = {
   result: SendPaymentResult;
