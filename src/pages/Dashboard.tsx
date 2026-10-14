@@ -26,11 +26,11 @@ function triggerDashboardHaptic(duration = 6) {
 
 export default function Dashboard({
   selectedToken, onTokenChange, onNavigate, onSendToContact, displayName, walletAlias, preferredCurrency, onDisplayNameChange,
-  walletAddress, walletAssets, walletStatus, walletError, onConnectWallet, onCopyAddress, onRefreshWallet, onDisconnectWallet,
+  walletAddress, walletAssets, walletStatus, walletError, displayCurrency, usdLocalRate, onConnectWallet, onCopyAddress, onRefreshWallet, onDisconnectWallet,
 }: {
   selectedToken: string; onTokenChange: (token: string) => void; onNavigate: (page: PageId) => void;
   onSendToContact: (recipient: string) => void; displayName: string; walletAlias: string | null; preferredCurrency: string; onDisplayNameChange: (name: string) => void;
-  walletAddress: string | null; walletAssets: WalletAsset[]; walletStatus: WalletStatus; walletError: string | null;
+  walletAddress: string | null; walletAssets: WalletAsset[]; walletStatus: WalletStatus; walletError: string | null; displayCurrency: string; usdLocalRate: number;
   onConnectWallet: () => void; onCopyAddress: () => void; onRefreshWallet: () => void; onDisconnectWallet: () => void;
 }) {
   const [contacts, setContacts] = useState<SavedContact[]>([]);
@@ -108,7 +108,7 @@ export default function Dashboard({
         <p>Your display name is saved to the account profile. Leave it blank to use Wallet 1.</p>
         <div><button type="button" className="secondary-button" onClick={() => { setNameInput(""); onDisplayNameChange(""); setShowNameEditor(false); }}>Use Wallet 1</button><button type="submit" className="primary-button">Save name</button></div>
       </form>}
-      <WalletCard selectedToken={selectedToken} onTokenChange={onTokenChange} walletAddress={walletAddress} walletAssets={walletAssets} walletStatus={walletStatus} walletError={walletError} onConnectWallet={onConnectWallet} onCopyAddress={onCopyAddress} onRefreshWallet={onRefreshWallet} onDisconnectWallet={onDisconnectWallet} />
+      <WalletCard selectedToken={selectedToken} onTokenChange={onTokenChange} walletAddress={walletAddress} walletAssets={walletAssets} walletStatus={walletStatus} walletError={walletError} displayCurrency={displayCurrency} usdLocalRate={usdLocalRate} onConnectWallet={onConnectWallet} onCopyAddress={onCopyAddress} onRefreshWallet={onRefreshWallet} onDisconnectWallet={onDisconnectWallet} />
       <section className="quick-actions-section" aria-label="Wallet actions"><div className="quick-action-grid">
         {quickActions.map((action) => <button className="quick-action" key={action.page} onClick={() => { triggerDashboardHaptic(); if (action.page === "contacts") setShowContacts(true); else onNavigate(action.page); }} type="button"><span className="quick-action-icon"><Icon name={action.icon} size={22} /></span><span className="quick-action-copy"><strong>{action.label}</strong></span></button>)}
       </div></section>
