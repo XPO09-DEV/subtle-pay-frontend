@@ -99,6 +99,13 @@ function transactionLabel(payment: PaymentRecord): string {
   if (payment.note?.trim()) return payment.note.trim();
   return payment.direction === "out" ? "Sent payment" : "Received payment";
 }
+function gasSummary(payment: PaymentRecord): string | null {
+  if (!payment.feePaidMon) return null;
+  const units = payment.gasUsed ? Number(payment.gasUsed).toLocaleString() : "—";
+  const gwei = payment.effectiveGasPriceWei ? Number(payment.effectiveGasPriceWei) / 1_000_000_000 : null;
+  const price = gwei !== null && Number.isFinite(gwei) ? gwei.toLocaleString(undefined, { maximumFractionDigits: 4 }) : "—";
+  return `Gas ${units} units · ${price} gwei · fee ${payment.feePaidMon} MON`;
+}
 
 export default function Activity() {
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
@@ -293,6 +300,7 @@ export default function Activity() {
                           {payment.txHash && <a className="activity-transaction-link" href={"https://testnet.monadexplorer.com/tx/" + encodeURIComponent(payment.txHash)} target="_blank" rel="noreferrer">
                             View transaction <Icon name="arrow-up-right" size={12} />
                           </a>}
+                          {gasSummary(payment) && <span className="activity-transaction-meta" title="Actual on-chain gas usage and network fee">{gasSummary(payment)}</span>}
                         </div>
                         <div className="activity-transaction-amount">
                           <strong className={failed ? "failed" : outgoing ? "outgoing" : "incoming"}>{outgoing ? "−" : "+"}{formatAmount(payment.localValue, payment.displayCurrency)}</strong>
