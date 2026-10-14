@@ -39,10 +39,16 @@ type MoreProps = {
 type Notice = { kind: "success" | "error"; text: string };
 const SAVED_ACCOUNTS_KEY = "subtlepay.saved.account-ids.v1";
 
+function normalizeAccountIdForUi(value: string): string {
+  return value.trim().toUpperCase().replace(/[\\s-]/g, "");
+}
 function readSavedAccounts(): string[] {
   try {
     const parsed: unknown = JSON.parse(window.localStorage.getItem(SAVED_ACCOUNTS_KEY) ?? "[]");
-    return Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === "string").slice(0, 10) : [];
+    return Array.isArray(parsed)
+      ? [...new Set(parsed.filter((value): value is string => typeof value === "string")
+          .map(normalizeAccountIdForUi).filter((value) => value.length === 27))].slice(0, 10)
+      : [];
   } catch { return []; }
 }
 function saveIds(ids: string[]) {
@@ -165,8 +171,8 @@ export default function More({
   }
   function addSavedAccount(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const id = newAccountId.trim().toUpperCase();
-    if (!id || id.length < 10 || id.length > 40) { report("error", "Enter a valid Subtle Pay account ID."); return; }
+    const id = normalizeAccountIdForUi(newAccountId);
+    if (id.length !== 27) { report("error", "Enter a complete 27-character Subtle Pay account ID."); return; }
     if (savedIds.includes(id)) { report("error", "That account is already saved on this device."); return; }
     const next = [...savedIds, id].slice(-10);
     setSavedIds(next); saveIds(next); setNewAccountId("");
