@@ -17,9 +17,7 @@ import {
   verifyPayQr,
 } from "../services/accountService";
 
-import {
-  isValidEvmAddress,
-} from "../services/walletService";
+import { isValidEvmAddress, type WalletAsset } from "../services/walletService";
 
 import type { ScannedRecipient } from "../utils/qr";
 import { CURRENCIES } from "../data/currencies";
@@ -32,7 +30,7 @@ type SendProps = {
   preferredCurrency?: string;
   walletAddress?: string | null;
   walletChainId?: string | null;
-  walletAssets?: unknown[];
+  walletAssets?: WalletAsset[];
   onConnectWallet?: () => void;
   onTransactionSubmitted?: () => void;
 };
@@ -84,12 +82,14 @@ export default function Send({
   initialRecipient = "",
   preferredCurrency = "USD",
   walletAddress = null,
+  walletAssets = [],
   onTransactionSubmitted,
 }: SendProps) {
   // Form state
   const [recipient, setRecipient] = useState(initialRecipient);
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState<Currency>(preferredCurrency || "USD");
+  const [selectedAsset, setSelectedAsset] = useState<"MON" | "USDC">("MON");
   const [currencies, setCurrencies] = useState<string[]>(["USD", "INR"]);
   const [note, setNote] = useState("");
 
@@ -123,6 +123,15 @@ export default function Send({
     });
     return () => { alive = false; };
   }, [preferredCurrency]);
+
+  useEffect(() => {
+    const heldAssets = walletAssets.filter((asset) =>
+      (asset.tokenSymbol === "MON" || asset.tokenSymbol === "USDC") && Number(asset.balance) > 0
+    );
+    if (!heldAssets.some((asset) => asset.tokenSymbol === selectedAsset)) {
+      setSelectedAsset((heldAssets[0]?.tokenSymbol as "MON" | "USDC" | undefined) ?? "MON");
+    }
+  }, [walletAssets, selectedAsset]);
 
   // Keep the recipient synchronized with navigation into this page.
   useEffect(() => {
@@ -213,10 +222,14 @@ export default function Send({
     Number.isFinite(amountNumber) &&
     amountNumber > 0;
 
-  const estimatedMon =
-    rates && validAmount
-      ? amountNumber / rates.usdLocal / rates.tokenUsd
-      : null;
+  const selectableAssets = walletAssets.filter((asset) =>
+    (asset.tokenSymbol === "MON" || asset.tokenSymbol === "USDC") && Number(asset.balance) > 0
+  );
+  const estimatedSettlementAmount = rates && validAmount
+    ? selectedAsset === "USDC"
+      ? amountNumber / rates.usdLocal
+      : amountNumber / rates.usdLocal / rates.tokenUsd
+    : null;
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -262,7 +275,7 @@ export default function Send({
         amount,
         amountCurrency: currency,
         note: note.trim() || undefined,
-        asset: "MON" as const,
+        asset: selectedAsset,
       };
       const authorization = authMethod === "passkey"
         ? await authorizePaymentWithPasskey(intent)
@@ -360,7 +373,7 @@ export default function Send({
         </div>
 
         <div className="account-testnet-note">
-          Testnet only · Payments settle in native MON on Monad Testnet. Testnet tokens have no cash value.
+          Testnet only · Pay with available MON or a configured stable token. Network gas is always paid in native MON. Testnet tokens have no cash value.
         </div>
 
         <form onSubmit={(event) => void submit(event)}>
@@ -433,6 +446,26 @@ export default function Send({
             {currencies.map((code) => { const option = CURRENCIES.find((item) => item.code.toUpperCase() === code); return <option value={code} key={code}>{option ? `${option.symbol} ${option.name} (${code})` : code}</option>; })}
           </select>
 
+          <label className="field-label" htmlFor="payment-asset">Pay with</label>
+          <select
+            id="payment-asset"
+            className="form-select full-select"
+            value={selectedAsset}
+            onChange={(event) => {
+              setSelectedAsset(event.target.value as "MON" | "USDC");
+              setResult(null);
+              setNotice("");
+            }}
+          >
+            {selectableAssets.length === 0 && <option value="MON">MON · no spendable balance detected</option>}
+            {selectableAssets.map((asset) => (
+              <option key={asset.id} value={asset.tokenSymbol}>
+                {asset.tokenSymbol} · Available {fmt(asset.balance, asset.tokenSymbol === "USDC" ? 6 : 8)}
+              </option>
+            ))}
+          </select>
+          <p className="account-gate-hint">Only assets with a configured Monad Testnet settlement path are selectable. Network fees are paid in native MON.</p>
+
           <label
             className="field-label"
             htmlFor="payment-amount"
@@ -481,15 +514,15 @@ export default function Send({
             </span>
 
             <span>
-              <strong>MON · Monad Testnet</strong>
-              <small>Settlement asset · Native token</small>
+              <strong>{selectedAsset} · Monad Testnet</strong>
+              <small>{selectedAsset === "MON" ? "Native token · pays network gas" : "Configured stable token · network gas is still paid in MON"}</small>
             </span>
 
             <span className="send-balance-copy">
-              {estimatedMon == null
+              {estimatedSettlementAmount == null
                 ? "—"
-                : `≈ ${fmt(estimatedMon, 8)} MON`}
-              <small>Estimate only</small>
+                : `≈ ${fmt(estimatedSettlementAmount, selectedAsset === "USDC" ? 6 : 8)} ${selectedAsset}`}
+              <small>Estimated transfer</small>
             </span>
           </div>
 
@@ -529,7 +562,7 @@ export default function Send({
           <div className="payment-auth-summary">
             <span>To <strong>{recipient.trim()}</strong></span>
             <span>Amount <strong>{amount || "0.00"} {currency}</strong></span>
-            <span>Settlement <strong>Native MON · Monad Testnet</strong></span>
+            <span>Settlement <strong>{selectedAsset} · Monad Testnet</strong></span>
           </div>
           <div className="payment-auth-methods" role="group" aria-label="Payment authorization method">
             {passkeyEnabled && <button type="button" className={authMethod === "passkey" ? "selected" : ""} onClick={() => { setAuthMethod("passkey"); setAuthSecret(""); setShowAuthSecret(false); setAuthError(""); }}>Passkey / device biometric</button>}
