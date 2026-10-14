@@ -19,7 +19,7 @@
 @media(max-width:420px) { .more-passkey-row { grid-template-columns:32px minmax(0,1fr); } .more-passkey-row>button { grid-column:2; justify-self:start; } }
 
 
-/* Settings navigation: every menu option jumps to its matching section. */
+/* Settings navigation: one section opens when its menu item is selected. */
 .settings-option-menu {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -30,7 +30,7 @@
   border-radius: 20px;
   background: #ffffff;
 }
-.settings-option-menu a {
+.settings-option-menu-item {
   display: flex;
   min-width: 0;
   min-height: 72px;
@@ -41,32 +41,59 @@
   border-radius: 14px;
   background: #ffffff;
   color: #17191f;
-  text-decoration: none;
-  transition: background-color 150ms ease, border-color 150ms ease, transform 150ms ease;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, transform 150ms ease;
 }
-.settings-option-menu a:hover {
+.settings-option-menu-item:hover {
   background: #f8f8fa;
   border-color: #d4d6dc;
   transform: translateY(-1px);
 }
-.settings-option-menu a:focus-visible {
+.settings-option-menu-item:focus-visible {
   outline: 2px solid #17191f;
   outline-offset: 2px;
 }
-.settings-option-menu a > span {
+.settings-option-menu-item.active {
+  color: #ffffff;
+  border-color: #17191f;
+  background: #17191f;
+}
+.settings-option-menu-item.danger:not(.active) {
+  color: #a92828;
+}
+.settings-option-menu-item.active.danger {
+  border-color: #8e2424;
+  background: #8e2424;
+}
+.settings-option-menu-item > span:not(.settings-menu-chevron) {
   display: grid;
   min-width: 0;
+  flex: 1;
   gap: 4px;
 }
-.settings-option-menu a strong {
+.settings-option-menu-item strong {
   font-size: 12px;
   line-height: 1.35;
   font-weight: 700;
 }
-.settings-option-menu a small {
+.settings-option-menu-item small {
   color: #70737b;
   font-size: 10px;
   line-height: 1.4;
+}
+.settings-option-menu-item.active small {
+  color: #d6d6dc;
+}
+.settings-menu-chevron {
+  flex: 0 0 auto;
+  font-size: 19px;
+  line-height: 1;
+  font-weight: 500;
+}
+.settings-option-menu-item.active .settings-menu-chevron {
+  color: #ffffff;
 }
 #settings-profile,
 #settings-account-management,
@@ -76,8 +103,13 @@
 #settings-login-history,
 #settings-currency,
 #settings-merchant,
-#settings-delete {
+#settings-delete,
+.more-merchant-dashboard-card[hidden] {
   scroll-margin-top: 18px;
+}
+.more-settings-card[hidden],
+.more-danger-zone[hidden] {
+  display: none !important;
 }
 @media (max-width: 760px) {
   .settings-option-menu {
@@ -90,10 +122,10 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .settings-option-menu a {
+  .settings-option-menu-item {
     transition: none;
   }
-  .settings-option-menu a:hover {
+  .settings-option-menu-item:hover {
     transform: none;
   }
 }
