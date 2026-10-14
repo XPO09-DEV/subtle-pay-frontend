@@ -7,3 +7,9 @@
   .account-gate-brand { margin-bottom: 25px; }
   .account-gate-wordmark { font-size: 23px; }
 }
+
+.account-gate-passkey-area { margin-top: 5px; }
+.account-gate-passkey-divider { display:flex; align-items:center; gap:12px; margin:16px 0; color:#888b92; font-size:10px; font-weight:750; letter-spacing:.12em; }
+.account-gate-passkey-divider::before,.account-gate-passkey-divider::after { content:""; height:1px; flex:1; background:#e6e7eb; }
+.account-gate-passkey { width:100%; border:1px solid #d7d9de; border-radius:12px; background:#fff; color:#111318; font-size:14px; font-weight:720; padding:14px 15px; cursor:pointer; }
+.account-gate-passkey:disabled { opacity:.5; cursor:not-allowed; }
