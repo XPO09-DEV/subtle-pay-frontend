@@ -25,11 +25,11 @@ function triggerDashboardHaptic(duration = 6) {
 }
 
 export default function Dashboard({
-  selectedToken, onTokenChange, onNavigate, onSendToContact, displayName, walletAlias, onDisplayNameChange,
+  selectedToken, onTokenChange, onNavigate, onSendToContact, displayName, walletAlias, preferredCurrency, onDisplayNameChange,
   walletAddress, walletAssets, walletStatus, walletError, onConnectWallet, onCopyAddress, onRefreshWallet, onDisconnectWallet,
 }: {
   selectedToken: string; onTokenChange: (token: string) => void; onNavigate: (page: PageId) => void;
-  onSendToContact: (recipient: string) => void; displayName: string; walletAlias: string | null; onDisplayNameChange: (name: string) => void;
+  onSendToContact: (recipient: string) => void; displayName: string; walletAlias: string | null; preferredCurrency: string; onDisplayNameChange: (name: string) => void;
   walletAddress: string | null; walletAssets: WalletAsset[]; walletStatus: WalletStatus; walletError: string | null;
   onConnectWallet: () => void; onCopyAddress: () => void; onRefreshWallet: () => void; onDisconnectWallet: () => void;
 }) {
@@ -129,7 +129,7 @@ export default function Dashboard({
           : <div className="contacts-list">{filteredContacts.map((contact) => <article className="contact-row" key={contact.id}><span className="avatar-initials contact-avatar">{contact.name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "•"}</span><span className="recipient-copy contact-copy"><strong>{contact.name}</strong><small>{contact.recipient}</small></span><button className="contact-send-button" type="button" onClick={() => { triggerDashboardHaptic(); onSendToContact(contact.recipient); }} aria-label={`Send to ${contact.name}`}><Icon name="send" size={15} /><span>Send</span></button></article>)}</div>}
       </section></div>}
 
-      <TokenAssetsWidget holdings={walletAssets.map((asset) => ({ id: asset.id, amount: asset.balance, symbol: asset.tokenSymbol, name: asset.tokenName, image: asset.thumbnail, price: asset.priceUsd, valueUsd: asset.balanceUsd, network: asset.chainLabel, contractAddress: asset.contractAddress }))} walletConnected={walletStatus === "ready"} />
+      <TokenAssetsWidget currency={preferredCurrency} holdings={walletAssets.map((asset) => ({ id: asset.id, marketId: asset.tokenSymbol === "MON" ? "monad" : asset.id, amount: asset.balance, symbol: asset.tokenSymbol, name: asset.tokenName, image: asset.thumbnail, price: asset.priceUsd, valueUsd: asset.balanceUsd, network: asset.chainLabel, contractAddress: asset.contractAddress }))} walletConnected={walletStatus === "ready"} />
 
       <div className="mobile-nav-spacer" />
     </div>
