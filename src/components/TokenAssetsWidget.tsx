@@ -250,7 +250,7 @@ const MAX_MULTICHAIN_SEARCH_RESULTS = 48;
 
 const MARKET_CACHE_TTL = 60_000;
 const MARKET_PRICE_CACHE = new Map<string, { savedAt: number; data: Record<string, MarketInfo> }>();
-const MARKET_PRICE_INFLIGHT = new Map<string, Promise<Record<string, MarketInfo>>>();
+const MARKET_PRICE_INFLIGHT = new Map<string, { promise: Promise<Record<string, MarketInfo>>; signal: AbortSignal }>();
 
 function coinRows(payload: unknown, depth = 0): Record<string, unknown>[] {
   if (depth > 6 || payload == null) return [];
@@ -321,10 +321,14 @@ async function fetchMarkets(
   const cached = MARKET_PRICE_CACHE.get(key);
   if (cached && Date.now() - cached.savedAt < MARKET_CACHE_TTL) return cached.data;
   const inFlight = MARKET_PRICE_INFLIGHT.get(key);
-  if (inFlight) return inFlight;
+  // React StrictMode aborts an effect during its development-only remount. Never
+  // reuse a market request whose signal is already aborted, or the first price
+  // load can fail until a currency change triggers another request.
+  if (inFlight && !inFlight.signal.aborted) return inFlight.promise;
+  if (inFlight?.signal.aborted) MARKET_PRICE_INFLIGHT.delete(key);
 
   const request = fetchMarketsUncached(base, headers, stableIds, currency, signal);
-  MARKET_PRICE_INFLIGHT.set(key, request);
+  MARKET_PRICE_INFLIGHT.set(key, { promise: request, signal });
   try {
     const data = await request;
     MARKET_PRICE_CACHE.set(key, { savedAt: Date.now(), data });
@@ -338,7 +342,7 @@ async function fetchMarkets(
     if (cached) return cached.data;
     throw error;
   } finally {
-    if (MARKET_PRICE_INFLIGHT.get(key) === request) MARKET_PRICE_INFLIGHT.delete(key);
+    if (MARKET_PRICE_INFLIGHT.get(key)?.promise === request) MARKET_PRICE_INFLIGHT.delete(key);
   }
 }
 
@@ -773,9 +777,10 @@ function Chart({ pts, tf, error, hover, onHover, animKey, currency, onRetry }: C
 function getSubtlePayApiBaseUrl(): string {
   const configured = ((import.meta.env.VITE_SUBTLEPAY_API_BASE_URL as string | undefined) ?? "").trim().replace(/\/+$/, "");
   if (configured) return configured;
-  if (typeof window === "undefined") return "http://127.0.0.1:4000";
-  if (["localhost", "127.0.0.1"].includes(window.location.hostname) && window.location.port === "5173") {
-    return "http://127.0.0.1:4000";
+  if (typeof window === "undefined") return "http://127.0.0.1:4055";
+  if (["localhost", "127.0.0.1"].includes(window.location.hostname)) {
+    if (window.location.port === "5174") return "http://127.0.0.1:4055";
+    if (window.location.port === "5173") return "http://127.0.0.1:4000";
   }
   return window.location.origin;
 }
@@ -948,8 +953,9 @@ export default function TokenAssetsWidget({
     const amounts = new Map<string, number>();
     const holdingById = new Map<string, Holding>();
     holdings.forEach((holding) => {
-      amounts.set(holding.id, (amounts.get(holding.id) ?? 0) + (holding.amount || 0));
-      holdingById.set(holding.id, holding);
+      const marketId = holding.marketId || holding.id;
+      amounts.set(marketId, (amounts.get(marketId) ?? 0) + (holding.amount || 0));
+      holdingById.set(marketId, holding);
     });
     const pinnedIds = new Set(pinned.map((p) => p.id));
     const build = (id: string, symbol: string, name: string, isPinned: boolean): TokenAsset => {

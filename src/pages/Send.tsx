@@ -1,5 +1,6 @@
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { QRCodeSVG } from "qrcode.react";
 import Icon from "../components/Icon";
 import PaymentReceipt from "../components/PaymentReceipt";
 import QRScanner from "../components/QRScanner";
@@ -8,6 +9,7 @@ import {
   authorizePayment,
   authorizePaymentWithPasskey,
   getPasskeys,
+  getSignedPayQr,
   getAccountRates,
   getSupportedCurrencies,
   getMpinStatus,
@@ -31,6 +33,8 @@ type SendProps = {
   initialRecipient?: string;
   preferredCurrency?: string;
   walletAddress?: string | null;
+  accountAlias?: string | null;
+  displayName?: string;
   walletChainId?: string | null;
   walletAssets?: unknown[];
   onConnectWallet?: () => void;
@@ -84,6 +88,8 @@ export default function Send({
   initialRecipient = "",
   preferredCurrency = "USD",
   walletAddress = null,
+  accountAlias = null,
+  displayName = "",
   onTransactionSubmitted,
 }: SendProps) {
   // Form state
@@ -96,6 +102,12 @@ export default function Send({
   // QR scanner state
   const [scanOpen, setScanOpen] = useState(false);
   const [scanNotice, setScanNotice] = useState("");
+  const [shareQrPayload, setShareQrPayload] = useState("");
+  const [shareQrAlias, setShareQrAlias] = useState<string | null>(null);
+  const [shareQrError, setShareQrError] = useState("");
+  const [shareQrBusy, setShareQrBusy] = useState(false);
+  const [shareQrNotice, setShareQrNotice] = useState("");
+  const shareQrRef = useRef<SVGSVGElement | null>(null);
 
   // Quote and payment state
   const [rates, setRates] = useState<RatesState | null>(null);
@@ -122,6 +134,149 @@ export default function Send({
     });
     return () => { alive = false; };
   }, [preferredCurrency]);
+
+  useEffect(() => {
+    let alive = true;
+    setShareQrPayload("");
+    setShareQrAlias(null);
+    setShareQrError("");
+    setShareQrNotice("");
+    if (!walletAddress) return () => { alive = false; };
+    void getSignedPayQr().then((result) => {
+      if (!alive) return;
+      if (result.address.toLowerCase() !== walletAddress.toLowerCase()) {
+        setShareQrError("The share QR doesn't match the currently signed-in wallet. Refresh your session and retry.");
+        return;
+      }
+      setShareQrPayload(result.payload);
+      setShareQrAlias(result.alias);
+    }).catch((error: unknown) => {
+      if (alive) setShareQrError(error instanceof Error ? error.message : "Your signed receiving QR could not be loaded.");
+    });
+    return () => { alive = false; };
+  }, [walletAddress]);
+
+  function shareIdentityText() {
+    const alias = accountAlias || shareQrAlias;
+    const identity = alias ? `Alias: ${alias.replace(/^@/, "").replace(/@monad$/i, "")}@monad` : `Name: ${displayName.trim() || "Subtle Pay"}`;
+    return `Subtle Pay · Monad Testnet\n${identity}\nWallet address: ${walletAddress || ""}\nNetwork: Monad Testnet (Chain ID 10143)\nOnly send native testnet MON to this address. Testnet tokens have no cash value.`;
+  }
+
+  async function createShareQrFile(): Promise<File> {
+    const svg = shareQrRef.current;
+    if (!svg || !shareQrPayload || !walletAddress) throw new Error("The signed QR is not ready yet.");
+    const clone = svg.cloneNode(true) as SVGSVGElement;
+    clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+    const svgBlob = new Blob([new XMLSerializer().serializeToString(clone)], { type: "image/svg+xml;charset=utf-8" });
+    const svgUrl = URL.createObjectURL(svgBlob);
+    try {
+      const image = new Image();
+      image.src = svgUrl;
+      await new Promise<void>((resolve, reject) => {
+        image.onload = () => resolve();
+        image.onerror = () => reject(new Error("QR image could not be prepared."));
+      });
+      const canvas = document.createElement("canvas");
+      canvas.width = 720;
+      canvas.height = 920;
+      const context = canvas.getContext("2d");
+      if (!context) throw new Error("This browser cannot create a shareable QR image.");
+      context.fillStyle = "#ffffff";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.strokeStyle = "#e5e7eb";
+      context.lineWidth = 2;
+      context.strokeRect(1, 1, canvas.width - 2, canvas.height - 2);
+      context.textAlign = "center";
+      context.fillStyle = "#141824";
+      context.font = "700 42px Arial, sans-serif";
+      context.fillText("Subtle Pay", 360, 74);
+      context.fillStyle = "#6b7280";
+      context.font = "600 20px Arial, sans-serif";
+      context.fillText("RECEIVE ON MONAD TESTNET", 360, 111);
+      const alias = accountAlias || shareQrAlias;
+      if (alias) {
+        context.fillStyle = "#141824";
+        context.font = "700 30px Arial, sans-serif";
+        context.fillText(alias.replace(/^@/, "").replace(/@monad$/i, "") + "@monad", 360, 158);
+      } else if (displayName.trim()) {
+        context.fillStyle = "#141824";
+        context.font = "700 28px Arial, sans-serif";
+        context.fillText(displayName.trim().slice(0, 28), 360, 158);
+      }
+      context.drawImage(image, 170, 185, 380, 380);
+      context.fillStyle = "#141824";
+      context.font = "600 18px Arial, sans-serif";
+      context.fillText("WALLET ADDRESS", 360, 612);
+      context.fillStyle = "#333844";
+      context.font = "16px monospace";
+      context.fillText(walletAddress.slice(0, 22), 360, 646);
+      context.fillText(walletAddress.slice(22), 360, 674);
+      context.fillStyle = "#6b7280";
+      context.font = "600 16px Arial, sans-serif";
+      context.fillText("Monad Testnet · Chain ID 10143", 360, 730);
+      context.fillStyle = "#8b3131";
+      context.font = "14px Arial, sans-serif";
+      context.fillText("Testnet only · Native MON transfers only", 360, 770);
+      context.fillStyle = "#6b7280";
+      context.font = "13px Arial, sans-serif";
+      context.fillText("Verify the account details before sending.", 360, 808);
+      const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob((value) => value ? resolve(value) : reject(new Error("QR image export failed.")), "image/png"));
+      return new File([blob], "subtle-pay-receive-qr.png", { type: "image/png" });
+    } finally {
+      URL.revokeObjectURL(svgUrl);
+    }
+  }
+
+  async function downloadShareQr() {
+    setShareQrNotice("");
+    setShareQrError("");
+    setShareQrBusy(true);
+    try {
+      const file = await createShareQrFile();
+      const url = URL.createObjectURL(file);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = file.name;
+      link.click();
+      URL.revokeObjectURL(url);
+      setShareQrNotice("Your QR card was downloaded. You can attach the PNG in WhatsApp, Instagram, or any app.");
+    } catch (error) {
+      setShareQrError(error instanceof Error ? error.message : "The QR card could not be downloaded.");
+    } finally {
+      setShareQrBusy(false);
+    }
+  }
+
+  async function shareMyQr() {
+    setShareQrNotice("");
+    setShareQrError("");
+    setShareQrBusy(true);
+    try {
+      const file = await createShareQrFile();
+      const text = shareIdentityText();
+      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ title: "My Subtle Pay QR", text, files: [file] });
+        setShareQrNotice("Your QR card and wallet details were sent to the selected sharing app.");
+      } else if (navigator.share) {
+        await navigator.share({ title: "My Subtle Pay receiving details", text });
+        setShareQrNotice("Your wallet details were shared. Download the QR card to attach the image in apps that don't support QR-image sharing.");
+      } else {
+        const url = URL.createObjectURL(file);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = file.name;
+        link.click();
+        URL.revokeObjectURL(url);
+        await navigator.clipboard?.writeText(text).catch(() => undefined);
+        setShareQrNotice("Your QR card was downloaded. Wallet details were copied when clipboard access was available; attach the PNG wherever you want to share it.");
+      }
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") return;
+      setShareQrError(error instanceof Error ? error.message : "Your QR card couldn't be shared.");
+    } finally {
+      setShareQrBusy(false);
+    }
+  }
 
   // Keep the recipient synchronized with navigation into this page.
   useEffect(() => {
@@ -282,6 +437,8 @@ export default function Send({
     }
   }
 
+  const qrDisplayAlias = accountAlias || shareQrAlias;
+
   return (
     <div className="page-stack inner-page send-page">
       <button
@@ -322,6 +479,28 @@ export default function Send({
           Scan QR
         </button>
       </div>
+
+      <section className="panel send-share-qr-panel" aria-labelledby="send-share-qr-title">
+        <div className="panel-heading compact">
+          <div><div className="section-kicker">SHARE YOUR DETAILS</div><h2 id="send-share-qr-title">Your Subtle Pay QR</h2><p>Send your QR card and wallet details through WhatsApp, Instagram, or any app.</p></div>
+          <Icon name="qr" size={21} />
+        </div>
+        {!walletAddress ? <p className="small-muted">Sign in to prepare your receiving QR.</p> : shareQrPayload ? <>
+          <div className="send-share-qr-preview">
+            <QRCodeSVG ref={shareQrRef} value={shareQrPayload} size={196} level="H" includeMargin />
+            <strong>{qrDisplayAlias ? qrDisplayAlias.replace(/^@/, "").replace(/@monad$/i, "") + "@monad" : displayName.trim() || "Subtle Pay"}</strong>
+            <span>{walletAddress}</span>
+            <small>Monad Testnet · Chain ID 10143</small>
+          </div>
+          <p className="send-share-qr-note">This signed QR identifies your receiving wallet. Share the QR card and details together; only use it for Monad Testnet.</p>
+          <div className="button-row send-share-qr-actions">
+            <button type="button" className="primary-button" onClick={() => void shareMyQr()} disabled={shareQrBusy}><Icon name="arrow-up-right" size={16} />{shareQrBusy ? "Preparing…" : "Share QR"}</button>
+            <button type="button" className="secondary-button" onClick={() => void downloadShareQr()} disabled={shareQrBusy}><Icon name="download" size={16} />Download QR card</button>
+          </div>
+        </> : <p className="small-muted">{shareQrError || "Preparing your secure receiving QR…"}</p>}
+        {shareQrNotice && <div className="inline-notice success" role="status"><Icon name="check-circle" size={16} /><span>{shareQrNotice}</span><button type="button" aria-label="Dismiss" onClick={() => setShareQrNotice("")}><Icon name="close" size={14} /></button></div>}
+        {shareQrError && shareQrPayload && <div className="inline-notice" role="alert"><Icon name="info" size={16} /><span>{shareQrError}</span><button type="button" aria-label="Dismiss" onClick={() => setShareQrError("")}><Icon name="close" size={14} /></button></div>}
+      </section>
 
       {scanNotice && (
         <div className="inline-notice" role="status">
