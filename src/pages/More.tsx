@@ -163,7 +163,11 @@ export default function More({
 
   function report(kind: Notice["kind"], text: string) { setNotice({ kind, text }); }
   function toggleSettingsCategory(category: SettingsCategory) {
-    setExpandedSettingsCategory((current) => current === category ? null : category);
+    setExpandedSettingsCategory((current) => {
+      const next = current === category ? null : category;
+      setActiveSettingsSection(null);
+      return next;
+    });
   }
   function toggleSettingsSection(section: SettingsSection, category: SettingsCategory) {
     setExpandedSettingsCategory(category);
@@ -381,29 +385,29 @@ export default function More({
         <div className="settings-menu-group">
           <button type="button" className={expandedSettingsCategory === "security" ? "settings-option-menu-parent active" : "settings-option-menu-parent"} onClick={() => toggleSettingsCategory("security")} aria-expanded={expandedSettingsCategory === "security"} aria-controls="settings-submenu-security"><Icon name="shield" size={19} /><span><strong>Security & access</strong><small>Password, biometrics and devices</small></span><span className="settings-menu-chevron" aria-hidden="true">{expandedSettingsCategory === "security" ? "−" : "+"}</span></button>
           {expandedSettingsCategory === "security" && <div className="settings-submenu" id="settings-submenu-security">
-            <button type="button" className={activeSettingsSection === "security" ? "settings-submenu-item active" : "settings-submenu-item"} onClick={() => toggleSettingsSection("security", "security")} aria-pressed={activeSettingsSection === "security"}><Icon name="key-round" size={16} />Password & MPIN</button>
+            <button type="button" className={activeSettingsSection === "security" ? "settings-submenu-item active" : "settings-submenu-item"} onClick={() => toggleSettingsSection("security", "security")} aria-pressed={activeSettingsSection === "security"}><Icon name="key" size={16} />Password & MPIN</button>
             <button type="button" className={activeSettingsSection === "passkeys" ? "settings-submenu-item active" : "settings-submenu-item"} onClick={() => toggleSettingsSection("passkeys", "security")} aria-pressed={activeSettingsSection === "passkeys"}><Icon name="fingerprint" size={16} />Passkeys & biometrics</button>
             <button type="button" className={activeSettingsSection === "sessions" ? "settings-submenu-item active" : "settings-submenu-item"} onClick={() => toggleSettingsSection("sessions", "security")} aria-pressed={activeSettingsSection === "sessions"}><Icon name="smartphone" size={16} />Devices & sessions</button>
             <button type="button" className={activeSettingsSection === "history" ? "settings-submenu-item active" : "settings-submenu-item"} onClick={() => toggleSettingsSection("history", "security")} aria-pressed={activeSettingsSection === "history"}><Icon name="clock" size={16} />Login history</button>
           </div>}
         </div>
         <div className="settings-menu-group">
-          <button type="button" className={expandedSettingsCategory === "preferences" ? "settings-option-menu-parent active" : "settings-option-menu-parent"} onClick={() => toggleSettingsCategory("preferences")} aria-expanded={expandedSettingsCategory === "preferences"} aria-controls="settings-submenu-preferences"><Icon name="sliders-horizontal" size={19} /><span><strong>Preferences</strong><small>Personal display settings</small></span><span className="settings-menu-chevron" aria-hidden="true">{expandedSettingsCategory === "preferences" ? "−" : "+"}</span></button>
+          <button type="button" className={expandedSettingsCategory === "preferences" ? "settings-option-menu-parent active" : "settings-option-menu-parent"} onClick={() => toggleSettingsCategory("preferences")} aria-expanded={expandedSettingsCategory === "preferences"} aria-controls="settings-submenu-preferences"><Icon name="sliders" size={19} /><span><strong>Preferences</strong><small>Personal display settings</small></span><span className="settings-menu-chevron" aria-hidden="true">{expandedSettingsCategory === "preferences" ? "−" : "+"}</span></button>
           {expandedSettingsCategory === "preferences" && <div className="settings-submenu" id="settings-submenu-preferences">
             <button type="button" className={activeSettingsSection === "currency" ? "settings-submenu-item active" : "settings-submenu-item"} onClick={() => toggleSettingsSection("currency", "preferences")} aria-pressed={activeSettingsSection === "currency"}><Icon name="globe" size={16} />Display currency</button>
           </div>}
         </div>
         <div className="settings-menu-group">
-          <button type="button" className={expandedSettingsCategory === "merchant" ? "settings-option-menu-parent active" : "settings-option-menu-parent"} onClick={() => toggleSettingsCategory("merchant")} aria-expanded={expandedSettingsCategory === "merchant"} aria-controls="settings-submenu-merchant"><Icon name="store" size={19} /><span><strong>Merchant tools</strong><small>Merchant profile and Autopay</small></span><span className="settings-menu-chevron" aria-hidden="true">{expandedSettingsCategory === "merchant" ? "−" : "+"}</span></button>
+          <button type="button" className={expandedSettingsCategory === "merchant" ? "settings-option-menu-parent active" : "settings-option-menu-parent"} onClick={() => toggleSettingsCategory("merchant")} aria-expanded={expandedSettingsCategory === "merchant"} aria-controls="settings-submenu-merchant"><Icon name="merchant" size={19} /><span><strong>Merchant tools</strong><small>Merchant profile and Autopay</small></span><span className="settings-menu-chevron" aria-hidden="true">{expandedSettingsCategory === "merchant" ? "−" : "+"}</span></button>
           {expandedSettingsCategory === "merchant" && <div className="settings-submenu" id="settings-submenu-merchant">
-            <button type="button" className={activeSettingsSection === "merchant" ? "settings-submenu-item active" : "settings-submenu-item"} onClick={() => toggleSettingsSection("merchant", "merchant")} aria-pressed={activeSettingsSection === "merchant"}><Icon name="store" size={16} />Merchant profile & Autopay</button>
+            <button type="button" className={activeSettingsSection === "merchant" ? "settings-submenu-item active" : "settings-submenu-item"} onClick={() => toggleSettingsSection("merchant", "merchant")} aria-pressed={activeSettingsSection === "merchant"}><Icon name="merchant" size={16} />Merchant profile & Autopay</button>
           </div>}
         </div>
         <div className="settings-menu-group">
           <button type="button" className={expandedSettingsCategory === "actions" ? "settings-option-menu-parent active danger" : "settings-option-menu-parent danger"} onClick={() => toggleSettingsCategory("actions")} aria-expanded={expandedSettingsCategory === "actions"} aria-controls="settings-submenu-actions"><Icon name="alert" size={19} /><span><strong>Account actions</strong><small>Sign out or permanently delete account</small></span><span className="settings-menu-chevron" aria-hidden="true">{expandedSettingsCategory === "actions" ? "−" : "+"}</span></button>
           {expandedSettingsCategory === "actions" && <div className="settings-submenu" id="settings-submenu-actions">
-            <button type="button" className={activeSettingsSection === "delete" ? "settings-submenu-item active danger" : "settings-submenu-item danger"} onClick={() => toggleSettingsSection("delete", "actions")} aria-pressed={activeSettingsSection === "delete"}><Icon name="trash-2" size={16} />Delete account</button>
-            <button type="button" className="settings-submenu-item danger" onClick={() => setShowSignOutConfirm(true)}><Icon name="log-out" size={16} />Sign out</button>
+            <button type="button" className={activeSettingsSection === "delete" ? "settings-submenu-item active danger" : "settings-submenu-item danger"} onClick={() => toggleSettingsSection("delete", "actions")} aria-pressed={activeSettingsSection === "delete"}><Icon name="alert" size={16} />Delete account</button>
+            <button type="button" className="settings-submenu-item danger" onClick={() => setShowSignOutConfirm(true)}><Icon name="logout" size={16} />Sign out</button>
           </div>}
         </div>
       </nav>
@@ -579,7 +583,7 @@ export default function More({
 
       {showSignOutConfirm && <div className="signout-confirm-backdrop">
         <section className="signout-confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="signout-confirm-title" aria-describedby="signout-confirm-description">
-          <span className="signout-confirm-icon"><Icon name="shield-alert" size={24} /></span>
+          <span className="signout-confirm-icon"><Icon name="shield" size={24} /></span>
           <div className="section-kicker">SECURITY REMINDER</div>
           <h2 id="signout-confirm-title">Before you sign out</h2>
           <div id="signout-confirm-description" className="signout-confirm-copy">
