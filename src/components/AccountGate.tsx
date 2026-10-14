@@ -2,6 +2,8 @@ import { useState, type FormEvent } from "react";
 import {
   getAccountProfile,
   loginAccount,
+  loginAccountWithPasskey,
+  isPasskeySupported,
   registerAccount,
   type AccountProfile,
 } from "../services/accountService";
@@ -39,6 +41,21 @@ export default function AccountGate({ onAuthenticated }: { onAuthenticated: (pro
       }
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "The account request failed. Check that the backend is running.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function signInWithPasskey() {
+    if (mode !== "login" || !accountId.trim()) return;
+    setError("");
+    setBusy(true);
+    try {
+      await loginAccountWithPasskey(accountId);
+      const profile = await getAccountProfile();
+      onAuthenticated(profile);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Passkey sign-in failed. Use your account ID and password.");
     } finally {
       setBusy(false);
     }
@@ -87,8 +104,15 @@ export default function AccountGate({ onAuthenticated }: { onAuthenticated: (pro
           <label className="account-gate-label">Password<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} minLength={mode === "register" ? 12 : 1} maxLength={128} autoComplete={mode === "register" ? "new-password" : "current-password"} required placeholder={mode === "register" ? "At least 12 characters" : "Your password"} /></label>
           {mode === "register" && <p className="account-gate-hint">Keep your password private. Subtle Pay creates an account ID and a backend-managed wallet for this testnet prototype.</p>}
           {error && <p className="account-gate-error" role="alert">{error}</p>}
-          <button className="account-gate-primary" type="submit" disabled={busy}>{busy ? "Please wait…" : mode === "register" ? "Create account" : "Sign in"}</button>
+          <button className="account-gate-primary" type="submit" disabled={busy}>{busy ? "Please wait…" : mode === "register" ? "Create account" : "Sign in with password"}</button>
         </form>
+        {mode === "login" && <div className="account-gate-passkey-area">
+          <div className="account-gate-passkey-divider"><span>OR</span></div>
+          <button className="account-gate-passkey" type="button" disabled={busy || !accountId.trim() || !isPasskeySupported()} onClick={() => void signInWithPasskey()}>
+            {busy ? "Waiting for your device…" : "Sign in with passkey"}
+          </button>
+          <p className="account-gate-hint">{isPasskeySupported() ? "Use your device's fingerprint, face recognition, or screen lock to verify your passkey." : "Passkeys are unavailable in this browser or origin. Use password sign-in instead."}</p>
+        </div>}
         <p className="account-gate-disclaimer">No mainnet transactions. Only testnet assets are available in this version.</p>
       </section>
     </main>

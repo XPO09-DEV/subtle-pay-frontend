@@ -1,4 +1,5 @@
 import { getBackendApiBaseUrl } from "./walletService";
+import { browserSupportsWebAuthn, startAuthentication, startRegistration } from "@simplewebauthn/browser";
 
 export interface AccountProfile {
   accountId: string;
@@ -12,6 +13,16 @@ export interface AccountProfile {
   region: string | null;
   regionConsentAt: number | null;
   country: string | null;
+}
+
+export interface PasskeyCredential {
+  credentialId: string;
+  deviceName: string;
+  deviceType: "singleDevice" | "multiDevice";
+  backedUp: boolean;
+  transports: string[];
+  createdAt: number;
+  lastUsedAt: number | null;
 }
 
 export interface AccountSession {
@@ -134,6 +145,56 @@ export async function switchSavedAccount(accountId: string): Promise<boolean> {
     if (error instanceof ApiError && error.status === 401) return false;
     throw error;
   }
+}
+
+export function isPasskeySupported(): boolean {
+  return browserSupportsWebAuthn();
+}
+
+export async function getPasskeys(): Promise<PasskeyCredential[]> {
+  const result = await authenticatedRequest<{ credentials: PasskeyCredential[] }>("/auth/passkeys");
+  return result.credentials;
+}
+
+export async function registerPasskey(currentPassword: string, deviceName: string): Promise<{ credentialId: string; deviceName: string; createdAt: number }> {
+  if (!browserSupportsWebAuthn()) throw new Error("This browser does not support passkeys. Use a supported browser over HTTPS or localhost.");
+  const pending = await authenticatedRequest<{
+    challengeId: string;
+    options: Parameters<typeof startRegistration>[0]["optionsJSON"];
+  }>("/auth/passkeys/registration/options", {
+    method: "POST",
+    body: JSON.stringify({ currentPassword }),
+  });
+  const credential = await startRegistration({ optionsJSON: pending.options });
+  return authenticatedRequest("/auth/passkeys/registration/verify", {
+    method: "POST",
+    body: JSON.stringify({ challengeId: pending.challengeId, credential, deviceName }),
+  });
+}
+
+export async function removePasskey(credentialId: string, currentPassword: string): Promise<void> {
+  await authenticatedRequest("/auth/passkeys/" + encodeURIComponent(credentialId), {
+    method: "DELETE",
+    body: JSON.stringify({ currentPassword }),
+  });
+}
+
+export async function loginAccountWithPasskey(accountId: string): Promise<void> {
+  if (!browserSupportsWebAuthn()) throw new Error("This browser does not support passkeys. Use your account ID and password.");
+  const pending = await rawRequest<{
+    challengeId: string;
+    options: Parameters<typeof startAuthentication>[0]["optionsJSON"];
+  }>("/auth/passkeys/authentication/options", {
+    method: "POST",
+    body: JSON.stringify({ accountId: accountId.trim() }),
+  }, false);
+  const credential = await startAuthentication({ optionsJSON: pending.options });
+  const result = await rawRequest<AuthReply>("/auth/passkeys/authentication/verify", {
+    method: "POST",
+    body: JSON.stringify({ challengeId: pending.challengeId, credential }),
+  }, false);
+  if (!result.token) throw new Error("Passkey sign-in did not return an authenticated session.");
+  accessToken = result.token;
 }
 
 export async function loginAccount(accountId: string, password: string): Promise<void> {
@@ -353,6 +414,24 @@ export async function authorizePayment(
 ): Promise<{ authorizationToken: string; expiresIn: number }> {
   return authenticatedRequest("/auth/payment-authorization", { method: "POST", body: JSON.stringify({ method, secret, ...(intent ? { intent } : {}) }) });
 }
+export async function authorizePaymentWithPasskey(
+  intent: PaymentAuthorizationIntent
+): Promise<{ authorizationToken: string; expiresIn: number }> {
+  if (!browserSupportsWebAuthn()) throw new Error("This browser does not support passkeys. Use MPIN or your account password.");
+  const pending = await authenticatedRequest<{
+    challengeId: string;
+    options: Parameters<typeof startAuthentication>[0]["optionsJSON"];
+  }>("/auth/passkeys/payment/options", {
+    method: "POST",
+    body: JSON.stringify({ intent }),
+  });
+  const credential = await startAuthentication({ optionsJSON: pending.options });
+  return authenticatedRequest("/auth/passkeys/payment/verify", {
+    method: "POST",
+    body: JSON.stringify({ challengeId: pending.challengeId, credential }),
+  });
+}
+
 export async function changeAccountPassword(oldPassword: string, newPassword: string): Promise<{ ok: boolean }> {
   return authenticatedRequest("/auth/change-password", { method: "POST", body: JSON.stringify({ oldPassword, newPassword }) });
 }

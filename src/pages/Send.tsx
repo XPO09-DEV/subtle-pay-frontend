@@ -6,6 +6,8 @@ import QRScanner from "../components/QRScanner";
 
 import {
   authorizePayment,
+  authorizePaymentWithPasskey,
+  getPasskeys,
   getAccountRates,
   getSupportedCurrencies,
   getMpinStatus,
@@ -103,8 +105,9 @@ export default function Send({
   const [result, setResult] = useState<SendPaymentResult | null>(null);
   const [receiptIssuedAt, setReceiptIssuedAt] = useState<string | null>(null);
   const [mpinEnabled, setMpinEnabled] = useState(false);
+  const [passkeyEnabled, setPasskeyEnabled] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
-  const [authMethod, setAuthMethod] = useState<"password" | "mpin">("password");
+  const [authMethod, setAuthMethod] = useState<"password" | "mpin" | "passkey">("password");
   const [authSecret, setAuthSecret] = useState("");
   const [authError, setAuthError] = useState("");
 
@@ -135,6 +138,7 @@ export default function Send({
     void getMpinStatus().then((value) => { if (alive) setMpinEnabled(value.enabled); }).catch(() => {
       if (alive) setMpinEnabled(false);
     });
+    void getPasskeys().then((items) => { if (alive) setPasskeyEnabled(items.length > 0); }).catch(() => { if (alive) setPasskeyEnabled(false); });
     return () => { alive = false; };
   }, []);
 
@@ -237,13 +241,13 @@ export default function Send({
       return;
     }
 
-    setAuthMethod(mpinEnabled ? "mpin" : "password");
+    setAuthMethod(passkeyEnabled ? "passkey" : mpinEnabled ? "mpin" : "password");
     setAuthOpen(true);
   }
 
   async function authorizeAndSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!authSecret) {
+    if (authMethod !== "passkey" && !authSecret) {
       setAuthError(authMethod === "mpin" ? "Enter your six-digit MPIN." : "Enter your account password.");
       return;
     }
@@ -258,7 +262,9 @@ export default function Send({
         note: note.trim() || undefined,
         asset: "MON" as const,
       };
-      const authorization = await authorizePayment(authMethod, authSecret, intent);
+      const authorization = authMethod === "passkey"
+        ? await authorizePaymentWithPasskey(intent)
+        : await authorizePayment(authMethod, authSecret, intent);
       const payment = await submitAccountPayment({
         ...intent,
         authorizationToken: authorization.authorizationToken,
@@ -527,31 +533,34 @@ export default function Send({
             <span>Settlement <strong>Native MON · Monad Testnet</strong></span>
           </div>
           <div className="payment-auth-methods" role="group" aria-label="Payment authorization method">
+            {passkeyEnabled && <button type="button" className={authMethod === "passkey" ? "selected" : ""} onClick={() => { setAuthMethod("passkey"); setAuthSecret(""); setAuthError(""); }}>Passkey / device biometric</button>}
             {mpinEnabled && <button type="button" className={authMethod === "mpin" ? "selected" : ""} onClick={() => { setAuthMethod("mpin"); setAuthSecret(""); setAuthError(""); }}>6-digit MPIN</button>}
             <button type="button" className={authMethod === "password" ? "selected" : ""} onClick={() => { setAuthMethod("password"); setAuthSecret(""); setAuthError(""); }}>Account password</button>
           </div>
           <form onSubmit={(event) => void authorizeAndSubmit(event)}>
-            <label className="field-label" htmlFor="payment-auth-secret">{authMethod === "mpin" ? "Enter your six-digit MPIN" : "Enter your account password"}</label>
-            <input
-              id="payment-auth-secret"
-              className="form-input"
-              type={authMethod === "mpin" ? "password" : "password"}
-              inputMode={authMethod === "mpin" ? "numeric" : undefined}
-              autoComplete={authMethod === "mpin" ? "one-time-code" : "current-password"}
-              maxLength={authMethod === "mpin" ? 6 : 128}
-              value={authSecret}
-              onChange={(event) => { setAuthSecret(authMethod === "mpin" ? event.target.value.replace(/\D/g, "").slice(0, 6) : event.target.value); setAuthError(""); }}
-              required
-            />
+            {authMethod === "passkey" ? <p className="account-gate-hint">Continue with your device's passkey prompt. Your browser or passkey provider may verify you with fingerprint, face recognition, or your device screen lock.</p> : <>
+              <label className="field-label" htmlFor="payment-auth-secret">{authMethod === "mpin" ? "Enter your six-digit MPIN" : "Enter your account password"}</label>
+              <input
+                id="payment-auth-secret"
+                className="form-input"
+                type="password"
+                inputMode={authMethod === "mpin" ? "numeric" : undefined}
+                autoComplete={authMethod === "mpin" ? "one-time-code" : "current-password"}
+                maxLength={authMethod === "mpin" ? 6 : 128}
+                value={authSecret}
+                onChange={(event) => { setAuthSecret(authMethod === "mpin" ? event.target.value.replace(/\D/g, "").slice(0, 6) : event.target.value); setAuthError(""); }}
+                required
+              />
+            </>}
             {authError && <p className="inline-notice" role="alert">{authError}</p>}
             <div className="payment-auth-actions">
               <button type="button" className="secondary-button" disabled={busy} onClick={() => { setAuthOpen(false); setAuthSecret(""); setAuthError(""); }}>Cancel</button>
-              <button type="submit" className="primary-button" disabled={busy || !authSecret || (authMethod === "mpin" && authSecret.length !== 6)}>
-                {busy ? "Authorizing…" : "Authorize & send"}
+              <button type="submit" className="primary-button" disabled={busy || (authMethod !== "passkey" && !authSecret) || (authMethod === "mpin" && authSecret.length !== 6)}>
+                {busy ? (authMethod === "passkey" ? "Waiting for device…" : "Authorizing…") : authMethod === "passkey" ? "Verify with passkey & send" : "Authorize & send"}
               </button>
             </div>
           </form>
-          <p className="tiny-note">Device biometrics are not enabled in this build. Use MPIN or password until passkey enrollment is implemented.</p>
+          <p className="tiny-note">{passkeyEnabled ? "Passkey authorization uses a fresh server challenge bound to this exact payment and is valid only once. Your password and MPIN remain available as alternatives." : "Register a passkey in Settings to authorize payments using your device's native verification prompt."}</p>
         </section>
       )}
 
