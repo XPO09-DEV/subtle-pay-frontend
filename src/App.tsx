@@ -256,9 +256,9 @@ export default function App() {
             walletStatus={walletStatus} walletError={walletError} onConnectWallet={connectWallet} onCopyAddress={copyWalletAddress}
             onRefreshWallet={() => { if (walletAddress) void refreshWallet(walletAddress, true); }} onDisconnectWallet={disconnectWallet} />}
           {activePage === "send" && <Send onBack={() => { setPrefilledRecipient(""); setActivePage("wallet"); }} initialRecipient={prefilledRecipient} preferredCurrency={accountProfile?.currency ?? "USD"}
-            walletAddress={walletAddress} accountAlias={accountProfile.alias} displayName={displayName} walletChainId={walletChainId} walletAssets={walletAssets} onConnectWallet={connectWallet}
+            walletAddress={walletAddress} walletChainId={walletChainId} walletAssets={walletAssets} onConnectWallet={connectWallet}
             onTransactionSubmitted={() => { if (walletAddress) void refreshWallet(walletAddress, true); }} />}
-          {activePage === "receive" && <Receive walletAddress={walletAddress} walletChainId={walletChainId} displayName={displayName} onConnectWallet={connectWallet} />}
+          {activePage === "receive" && <Receive walletAddress={walletAddress} walletChainId={walletChainId} displayName={displayName} accountAlias={accountProfile.alias} onConnectWallet={connectWallet} />}
           {activePage === "merchant" && <Merchant />}
           {activePage === "more" && <More
             onOpenMerchantCentre={() => setActivePage("merchant")}

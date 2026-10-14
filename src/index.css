@@ -1546,67 +1546,6 @@ button, input, select { -webkit-tap-highlight-color: transparent; }
 }
 
 
-/* Shareable signed receiving QR inside Send. */
-.send-share-qr-panel .panel-heading p {
-  margin: 6px 0 0;
-  color: #7b8494;
-  font-size: 12px;
-  line-height: 1.5;
-}
-.send-share-qr-preview {
-  display: flex;
-  width: min(100%, 350px);
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  margin: 16px auto;
-  padding: 18px 16px;
-  border: 1px solid #e5e8ef;
-  border-radius: 18px;
-  background: #fff;
-  text-align: center;
-}
-.send-share-qr-preview svg {
-  display: block;
-  max-width: 100%;
-  height: auto;
-  image-rendering: pixelated;
-}
-.send-share-qr-preview > strong {
-  max-width: 100%;
-  overflow-wrap: anywhere;
-  color: #151923;
-  font-size: 16px;
-  font-weight: 750;
-}
-.send-share-qr-preview > span {
-  max-width: 100%;
-  overflow-wrap: anywhere;
-  color: #454b57;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 10px;
-  line-height: 1.55;
-}
-.send-share-qr-preview > small {
-  color: #858d9c;
-  font-size: 10px;
-}
-.send-share-qr-note {
-  color: #7b8494;
-  font-size: 11px;
-  line-height: 1.55;
-}
-.send-share-qr-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 9px;
-}
-.send-share-qr-actions > button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-}
 .mobile-header-brand .brand-logo-mark {
   width: 29px;
   height: 29px;
@@ -1616,12 +1555,63 @@ button, input, select { -webkit-tap-highlight-color: transparent; }
   width: 38px;
   height: 38px;
 }
-@media (max-width: 460px) {
-  .send-share-qr-actions {
+
+/* Receiving QR actions: share the signed receiving identity from Receive, not Send. */
+.receive-hero-identity {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 14px;
+}
+.receive-hero-identity strong {
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  overflow-wrap: anywhere;
+}
+.receive-hero-identity small {
+  color: rgba(255,255,255,.63);
+  font-size: 10px;
+  line-height: 1.4;
+}
+.receive-qr-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+.receive-qr-actions > button {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+.receive-share-note {
+  margin: 10px 0 0;
+  color: #858fa1;
+  font-size: 10px;
+  line-height: 1.55;
+}
+.send-page .page-intro p {
+  max-width: 470px;
+}
+.send-page .qr-tools {
+  margin-top: 0;
+  margin-bottom: 2px;
+}
+.send-page .qr-tools .secondary-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+@media (max-width: 760px) {
+  .receive-qr-actions {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
-  .send-share-qr-actions > button {
+  .receive-qr-actions > button {
     width: 100%;
   }
+  .receive-hero-identity { margin-top: 10px; }
 }
