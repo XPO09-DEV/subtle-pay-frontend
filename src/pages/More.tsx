@@ -546,14 +546,7 @@ export default function More({
         <p className="more-helper">This controls displayed values and quotes. Monad Testnet transfers still settle in MON; this preference does not by itself change the settlement asset.</p>
       </section>
 
-      {activeSettingsSection === "merchant" && merchantEnabled && merchant && <section hidden={activeSettingsSection !== "merchant"} className="panel more-settings-card more-merchant-dashboard-card">
-        <div className="panel-heading compact"><div><div className="section-kicker">MERCHANT ACCOUNT</div><h2>Merchant wallet controls</h2></div><Icon name="merchant" size={20} /></div>
-        <div className="merchant-profile-summary"><div><strong>{merchant.publicName}{merchant.status === "approved" && <span className="merchant-verified-badge more-profile-verified" title="Verified merchant">✓ Verified</span>}</strong><small>{merchant.category} · {merchant.status === "approved" ? "Verified" : merchant.status === "suspended" ? "Suspended" : "Awaiting verification"}</small></div><span className={merchant.status === "approved" ? "merchant-verified-badge" : "status-pill neutral"}>{merchant.status === "approved" ? "✓ Verified" : "Unverified"}</span></div>
-        <p className="more-helper">Manage your public merchant profile, payment QR and Autopay application status in Merchant Centre. Verification remains controlled by Subtle Pay review.</p>
-        <button type="button" className="primary-button wide-button" onClick={() => onOpenMerchantCentre?.()}>Open Merchant Centre <Icon name="arrow-up-right" size={16} /></button>
-      </section>}
-
-      <section id="settings-merchant" hidden={activeSettingsSection !== "merchant"} className="panel more-settings-card">
+            <section id="settings-merchant" hidden={activeSettingsSection !== "merchant"} className="panel more-settings-card">
         <div className="panel-heading compact"><div><div className="section-kicker">MERCHANT TOOLS</div><h2>Merchant profile & Autopay</h2></div><Icon name="merchant" size={20} /></div>
         {merchantEnabled && merchant ? <div className="merchant-profile-summary"><div><strong>{merchant.publicName}</strong><small>{merchant.category} · {merchant.status}</small></div><span className={merchant.status === "approved" ? "merchant-verified-badge" : "status-pill neutral"}>{merchant.status === "approved" ? "✓ Verified" : "Not verified"}</span></div>
           : <form className="more-form" onSubmit={(event) => void enableMerchant(event)}>
@@ -562,6 +555,7 @@ export default function More({
             <label className="field-label" htmlFor="more-merchant-category">Category</label><select id="more-merchant-category" className="form-select" value={merchantCategory} onChange={(event) => setMerchantCategory(event.target.value)}><option value="individual">Individual / creator</option><option value="retail">Retail</option><option value="services">Services</option><option value="online">Online business</option><option value="other">Other</option></select>
             <button type="submit" className="primary-button wide-button" disabled={Boolean(busy)}>{busy === "merchant" ? "Enabling…" : "Enable merchant profile"}</button>
           </form>}
+        {merchantEnabled && merchant && <button type="button" className="primary-button wide-button more-merchant-centre-button" onClick={() => onOpenMerchantCentre?.()}>Open Merchant Centre <Icon name="arrow-up-right" size={16} /></button>}
         <div className="more-divider" />
         <h3>Apply for Autopay</h3><p className="more-helper">Autopay stays unavailable until a team member approves the application. Submitting an application does not activate recurring payments.</p>
         <form className="more-form" onSubmit={(event) => void submitAutopay(event)}>
