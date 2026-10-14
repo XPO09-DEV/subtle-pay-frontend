@@ -261,6 +261,7 @@ export default function App() {
           {activePage === "receive" && <Receive walletAddress={walletAddress} walletChainId={walletChainId} displayName={displayName} onConnectWallet={connectWallet} />}
           {activePage === "merchant" && <Merchant />}
           {activePage === "more" && <More
+            onOpenMerchantCentre={() => setActivePage("merchant")}
             accountId={accountProfile.accountId}
             walletAddress={walletAddress}
             profile={accountProfile}
