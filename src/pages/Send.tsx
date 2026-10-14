@@ -20,6 +20,7 @@ import {
 } from "../services/walletService";
 
 import type { ScannedRecipient } from "../utils/qr";
+import { CURRENCIES } from "../data/currencies";
 
 type Currency = string;
 
@@ -111,8 +112,8 @@ export default function Send({
     let alive = true;
     void getSupportedCurrencies().then((items) => {
       if (!alive || items.length === 0) return;
-      setCurrencies(items);
-      if (preferredCurrency && items.includes(preferredCurrency)) setCurrency(preferredCurrency);
+      setCurrencies(CURRENCIES.filter((option) => items.includes(option.code.toUpperCase())).map((option) => option.code.toUpperCase()));
+      if (preferredCurrency && items.includes(preferredCurrency) && CURRENCIES.some((option) => option.code.toUpperCase() === preferredCurrency)) setCurrency(preferredCurrency);
     }).catch(() => {
       if (alive) setCurrencies(["USD", "INR"]);
     });
@@ -423,7 +424,8 @@ export default function Send({
               setNotice("");
             }}
           >
-            {currencies.map((code) => <option value={code} key={code}>{code}</option>)}
+            {currency && !currencies.includes(currency) && <option value={currency}>Current saved preference — {currency}</option>}
+            {currencies.map((code) => { const option = CURRENCIES.find((item) => item.code.toUpperCase() === code); return <option value={code} key={code}>{option ? `${option.symbol} ${option.name} (${code})` : code}</option>; })}
           </select>
 
           <label
