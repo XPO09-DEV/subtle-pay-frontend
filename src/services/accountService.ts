@@ -122,6 +122,20 @@ export async function registerAccount(password: string): Promise<{ accountId: st
   return { accountId: result.accountId, walletAddress: result.address };
 }
 
+export async function switchSavedAccount(accountId: string): Promise<boolean> {
+  try {
+    const result = await rawRequest<AuthReply>("/auth/switch-saved", {
+      method: "POST", body: JSON.stringify({ accountId: accountId.trim().toUpperCase() }),
+    }, false);
+    if (!result.token) throw new Error("Saved-session response did not include an access token.");
+    accessToken = result.token;
+    return true;
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 401) return false;
+    throw error;
+  }
+}
+
 export async function loginAccount(accountId: string, password: string): Promise<void> {
   const result = await rawRequest<AuthReply>("/auth/login", {
     method: "POST", body: JSON.stringify({ accountId: accountId.trim(), password }),
