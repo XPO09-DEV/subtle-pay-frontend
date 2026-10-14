@@ -107,7 +107,7 @@ export default function Send({
   const [mpinEnabled, setMpinEnabled] = useState(false);
   const [passkeyEnabled, setPasskeyEnabled] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
-  const [authMethod, setAuthMethod] = useState<"password" | "mpin">("password");
+  const [authMethod, setAuthMethod] = useState<"password" | "mpin" | "passkey">("password");
   const [authSecret, setAuthSecret] = useState("");
   const [authError, setAuthError] = useState("");
 
