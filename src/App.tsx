@@ -13,6 +13,7 @@ import Notifications from "./pages/Notifications";
 import Receive from "./pages/Receive";
 import Send from "./pages/Send";
 import { type WalletAsset, copyText, getChainLabel } from "./services/walletService";
+import { getAccountRates } from "./services/accountService";
 
 type WalletStatus = "disconnected" | "connecting" | "loading" | "ready" | "error";
 
@@ -84,6 +85,9 @@ export default function App() {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [displayName, setDisplayName] = useState("");
   const [accountProfile, setAccountProfile] = useState<AccountProfile | null>(null);
+  const [displayCurrency, setDisplayCurrency] = useState("USD");
+  const [usdLocalRate, setUsdLocalRate] = useState(1);
+  const [rateCurrency, setRateCurrency] = useState("USD");
   const [accountLoading, setAccountLoading] = useState(true);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [walletChainId, setWalletChainId] = useState<string | null>(null);
@@ -129,6 +133,29 @@ export default function App() {
       window.dispatchEvent(new CustomEvent("subtlepay:notice", { detail: "Wallet address copied." }));
     } catch { setWalletError("Copy is unavailable in this browser."); }
   }, [walletAddress]);
+
+  useEffect(() => {
+    if (accountProfile?.currency) setDisplayCurrency(accountProfile.currency.toUpperCase());
+  }, [accountProfile?.currency]);
+
+  useEffect(() => {
+    const syncCurrency = (event: Event) => {
+      const value = (event as CustomEvent<string>).detail;
+      if (typeof value === "string" && /^[a-z]{3}$/i.test(value)) setDisplayCurrency(value.toUpperCase());
+    };
+    window.addEventListener("subtlepay:default-currency", syncCurrency);
+    return () => window.removeEventListener("subtlepay:default-currency", syncCurrency);
+  }, []);
+
+  useEffect(() => {
+    let alive = true;
+    void getAccountRates(displayCurrency).then((rates) => {
+      if (alive && rates.currency.toUpperCase() === displayCurrency.toUpperCase()) {
+        setUsdLocalRate(rates.usdLocal); setRateCurrency(displayCurrency.toUpperCase());
+      }
+    }).catch(() => { if (alive) { setUsdLocalRate(1); setRateCurrency("USD"); } });
+    return () => { alive = false; };
+  }, [displayCurrency]);
 
   useEffect(() => {
     let alive = true;
@@ -269,10 +296,10 @@ export default function App() {
           </button>)}
         </nav></div>}
         <main className="page-scroll">
-          {activePage === "wallet" && <Dashboard selectedToken={selectedToken} onTokenChange={setSelectedToken} walletAlias={accountProfile.alias} preferredCurrency={accountProfile.currency ?? "USD"} onNavigate={setActivePage}
+          {activePage === "wallet" && <Dashboard selectedToken={selectedToken} onTokenChange={setSelectedToken} walletAlias={accountProfile.alias} preferredCurrency={displayCurrency} onNavigate={setActivePage}
             onSendToContact={(recipient) => { setPrefilledRecipient(recipient); setActivePage("send"); }}
             displayName={displayName} onDisplayNameChange={saveDisplayName} walletAddress={walletAddress} walletAssets={walletAssets}
-            walletStatus={walletStatus} walletError={walletError} onConnectWallet={connectWallet} onCopyAddress={copyWalletAddress}
+            walletStatus={walletStatus} walletError={walletError} displayCurrency={displayCurrency} usdLocalRate={rateCurrency === displayCurrency ? usdLocalRate : 1} onConnectWallet={connectWallet} onCopyAddress={copyWalletAddress}
             onRefreshWallet={() => { if (walletAddress) void refreshWallet(walletAddress, true); }} onDisconnectWallet={disconnectWallet} />}
           {activePage === "send" && <Send onBack={() => { setPrefilledRecipient(""); setActivePage("wallet"); }} initialRecipient={prefilledRecipient} preferredCurrency={accountProfile?.currency ?? "USD"}
             walletAddress={walletAddress} walletChainId={walletChainId} walletAssets={walletAssets} onConnectWallet={connectWallet}
