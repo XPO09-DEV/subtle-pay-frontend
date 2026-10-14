@@ -190,7 +190,7 @@ export interface PaymentRecord {
 export interface SendPaymentInput {
   to: string;
   amount: string;
-  amountCurrency: "USD" | "INR";
+  amountCurrency: string;
   note?: string;
   asset: "MON";
   authorizationToken: string;
@@ -291,7 +291,7 @@ export async function getSupportedCurrencies(): Promise<string[]> {
   return result.currencies.map((currency) => currency.code.toUpperCase());
 }
 
-export async function getAccountRates(currency: "USD" | "INR" = "USD"): Promise<{ tokenUsd: number; usdLocal: number; currency: string; updatedAt: string }> {
+export async function getAccountRates(currency: string = "USD"): Promise<{ tokenUsd: number; usdLocal: number; currency: string; updatedAt: string }> {
   return rawRequest<{ tokenUsd: number; usdLocal: number; currency: string; updatedAt: string }>(`/rates?currency=${currency}`, {}, false);
 }
 export interface ActiveAccountSession {
