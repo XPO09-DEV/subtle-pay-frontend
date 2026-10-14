@@ -163,11 +163,8 @@ export default function More({
 
   function report(kind: Notice["kind"], text: string) { setNotice({ kind, text }); }
   function toggleSettingsCategory(category: SettingsCategory) {
-    setExpandedSettingsCategory((current) => {
-      const next = current === category ? null : category;
-      setActiveSettingsSection(null);
-      return next;
-    });
+    setExpandedSettingsCategory(expandedSettingsCategory === category ? null : category);
+    setActiveSettingsSection(null);
   }
   function toggleSettingsSection(section: SettingsSection, category: SettingsCategory) {
     setExpandedSettingsCategory(category);
