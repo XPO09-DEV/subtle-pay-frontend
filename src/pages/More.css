@@ -17,3 +17,83 @@
 .more-passkey-copy small { color:#70737b; font-size:11px; line-height:1.5; overflow-wrap:anywhere; }
 .more-passkey-remove-form { border-top:1px solid #ececef; padding-top:16px; margin-top:6px; }
 @media(max-width:420px) { .more-passkey-row { grid-template-columns:32px minmax(0,1fr); } .more-passkey-row>button { grid-column:2; justify-self:start; } }
+
+
+/* Settings navigation: every menu option jumps to its matching section. */
+.settings-option-menu {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding: 12px;
+  margin-bottom: 4px;
+  border: 1px solid #e8e9ed;
+  border-radius: 20px;
+  background: #ffffff;
+}
+.settings-option-menu a {
+  display: flex;
+  min-width: 0;
+  min-height: 72px;
+  align-items: center;
+  gap: 11px;
+  padding: 13px;
+  border: 1px solid #ececef;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #17191f;
+  text-decoration: none;
+  transition: background-color 150ms ease, border-color 150ms ease, transform 150ms ease;
+}
+.settings-option-menu a:hover {
+  background: #f8f8fa;
+  border-color: #d4d6dc;
+  transform: translateY(-1px);
+}
+.settings-option-menu a:focus-visible {
+  outline: 2px solid #17191f;
+  outline-offset: 2px;
+}
+.settings-option-menu a > span {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+.settings-option-menu a strong {
+  font-size: 12px;
+  line-height: 1.35;
+  font-weight: 700;
+}
+.settings-option-menu a small {
+  color: #70737b;
+  font-size: 10px;
+  line-height: 1.4;
+}
+#settings-profile,
+#settings-account-management,
+#settings-security,
+#settings-passkeys,
+#settings-sessions,
+#settings-login-history,
+#settings-currency,
+#settings-merchant,
+#settings-delete {
+  scroll-margin-top: 18px;
+}
+@media (max-width: 760px) {
+  .settings-option-menu {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 380px) {
+  .settings-option-menu {
+    grid-template-columns: 1fr;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .settings-option-menu a {
+    transition: none;
+  }
+  .settings-option-menu a:hover {
+    transform: none;
+  }
+}
