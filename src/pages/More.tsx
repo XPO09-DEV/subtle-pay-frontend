@@ -35,6 +35,7 @@ type MoreProps = {
   onLogout: () => void;
   onAccountSwitched?: (profile: AccountProfile) => void;
   onProfileUpdated?: (profile: AccountProfile) => void;
+  onOpenMerchantCentre?: () => void;
 };
 type Notice = { kind: "success" | "error"; text: string };
 const SAVED_ACCOUNTS_KEY = "subtlepay.saved.account-ids.v1";
@@ -92,7 +93,7 @@ function pixelAvatarUrl(name: string, account: string): string {
 }
 
 export default function More({
-  accountId = "", walletAddress = null, profile = null, onLogout, onAccountSwitched, onProfileUpdated,
+  accountId = "", walletAddress = null, profile = null, onLogout, onAccountSwitched, onProfileUpdated, onOpenMerchantCentre,
 }: MoreProps) {
   const [displayName, setDisplayName] = useState(profile?.displayName ?? "");
   const [country, setCountry] = useState(profile?.country ?? "");
@@ -310,7 +311,7 @@ export default function More({
 
       <section className="profile-panel more-profile-summary">
         <span className="profile-avatar more-pixel-avatar"><img src={pixelAvatarUrl(profile?.displayName || handle, accountId || profile?.accountId || "wallet")} alt={`${(profile?.displayName || "Wallet").split(/\\s+/)[0]} pixel-art avatar`} /></span>
-        <div className="profile-copy"><strong>{profile?.displayName || handle}</strong><span>{profile?.accountId || accountId || "Signed-in account"}</span><small>{shortAddress(walletAddress)} · Monad Testnet</small></div>
+        <div className="profile-copy"><strong>{profile?.displayName || handle}{merchant?.status === "approved" && <span className="merchant-verified-badge more-profile-verified" title="Verified merchant" aria-label="Verified merchant">✓</span>}</strong><span>{profile?.accountId || accountId || "Signed-in account"}</span><small>{shortAddress(walletAddress)} · Monad Testnet</small></div>
         <span className="profile-status-dot" />
       </section>
 
@@ -425,6 +426,13 @@ export default function More({
         </form>
         <p className="more-helper">This controls displayed values and quotes. Monad Testnet transfers still settle in MON; this preference does not by itself change the settlement asset.</p>
       </section>
+
+      {merchantEnabled && merchant && <section className="panel more-settings-card more-merchant-dashboard-card">
+        <div className="panel-heading compact"><div><div className="section-kicker">MERCHANT ACCOUNT</div><h2>Merchant wallet controls</h2></div><Icon name="merchant" size={20} /></div>
+        <div className="merchant-profile-summary"><div><strong>{merchant.publicName}{merchant.status === "approved" && <span className="merchant-verified-badge more-profile-verified" title="Verified merchant">✓ Verified</span>}</strong><small>{merchant.category} · {merchant.status === "approved" ? "Verified" : merchant.status === "suspended" ? "Suspended" : "Awaiting verification"}</small></div><span className={merchant.status === "approved" ? "merchant-verified-badge" : "status-pill neutral"}>{merchant.status === "approved" ? "✓ Verified" : "Unverified"}</span></div>
+        <p className="more-helper">Manage your public merchant profile, payment QR and Autopay application status in Merchant Centre. Verification remains controlled by Subtle Pay review.</p>
+        <button type="button" className="primary-button wide-button" onClick={() => onOpenMerchantCentre?.()}>Open Merchant Centre <Icon name="arrow-up-right" size={16} /></button>
+      </section>}
 
       <section className="panel more-settings-card">
         <div className="panel-heading compact"><div><div className="section-kicker">MERCHANT TOOLS</div><h2>Merchant profile & Autopay</h2></div><Icon name="merchant" size={20} /></div>
