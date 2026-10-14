@@ -1555,16 +1555,6 @@ button, input, select { -webkit-tap-highlight-color: transparent; }
   width: 38px;
   height: 38px;
 }
-@media (max-width: 460px) {
-  .send-share-qr-actions {
-    display: grid;
-    grid-template-columns: 1fr;
-  }
-  .send-share-qr-actions > button {
-    width: 100%;
-  }
-}
-
 
 /* Receiving QR actions: share the signed receiving identity from Receive, not Send. */
 .receive-hero-identity {
