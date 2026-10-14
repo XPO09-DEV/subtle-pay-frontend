@@ -13,7 +13,7 @@ export default defineConfig({
     proxy: Object.fromEntries([
       "/auth", "/me", "/home", "/wallet", "/gas", "/rates", "/assets",
       "/providers", "/contacts", "/payments", "/merchant", "/qr", "/bills",
-      "/mandates", "/withdrawals", "/admin", "/meta",
+      "/mandates", "/withdrawals", "/admin", "/meta", "/health",
     ].map((route) => [route, {
       target: process.env.SUBTLEPAY_API_PROXY_TARGET || "http://127.0.0.1:4055",
       changeOrigin: true,
