@@ -17,7 +17,12 @@ export interface WalletAsset {
   tokenType: "Native testnet coin" | "Configured testnet token";
 }
 
-const API_BASE_URL = ((import.meta.env.VITE_SUBTLEPAY_API_BASE_URL as string | undefined) ?? "").trim().replace(/\/+$/, "");
+const API_BASE_URL = ((import.meta.env.VITE_SUBTLEPAY_API_BASE_URL as string | undefined) ?? "")
+  .trim()
+  .replace(/\/+$/, "")
+  // Backend routes are mounted at the origin root (for example /qr/pay, not /api/qr/pay).
+  // Tolerate an accidental /api suffix in an existing local .env.local.
+  .replace(/\/api$/i, "");
 
 export function getBackendApiBaseUrl(): string {
   if (API_BASE_URL) return API_BASE_URL;
