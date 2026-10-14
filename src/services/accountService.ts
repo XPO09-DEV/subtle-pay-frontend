@@ -342,7 +342,7 @@ export async function removeAccountMpin(currentPassword: string): Promise<{ enab
 export type PaymentAuthorizationIntent = {
   to: string;
   amount: string | number;
-  amountCurrency: "USD" | "INR";
+  amountCurrency: string;
   note?: string;
   asset?: "MON";
 };
