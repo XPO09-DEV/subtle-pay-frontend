@@ -516,7 +516,7 @@ export default function More({
       </section>}
 
       <section id="settings-merchant" className="panel more-settings-card">
-        <div className="panel-heading compact"><div><div className className="section-kicker">MERCHANT TOOLS</div><h2>Merchant profile & Autopay</h2></div><Icon name="merchant" size={20} /></div>
+        <div className="panel-heading compact"><div><div className="section-kicker">MERCHANT TOOLS</div><h2>Merchant profile & Autopay</h2></div><Icon name="merchant" size={20} /></div>
         {merchantEnabled && merchant ? <div className="merchant-profile-summary"><div><strong>{merchant.publicName}</strong><small>{merchant.category} · {merchant.status}</small></div><span className={merchant.status === "approved" ? "merchant-verified-badge" : "status-pill neutral"}>{merchant.status === "approved" ? "✓ Verified" : "Not verified"}</span></div>
           : <form className="more-form" onSubmit={(event) => void enableMerchant(event)}>
             <p className="more-helper">Anyone can enable a public merchant profile. The yellow verified badge is reserved for profiles approved by Subtle Pay staff.</p>
