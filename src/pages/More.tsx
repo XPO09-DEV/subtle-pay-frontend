@@ -12,6 +12,11 @@ import {
   getMerchantAutopayApplications,
   getMerchantProfile,
   getMpinStatus,
+  getPasskeys,
+  isPasskeySupported,
+  registerPasskey,
+  removePasskey,
+  type PasskeyCredential,
   loginAccount,
   removeAccountMpin,
   revokeAccountSession,
@@ -121,6 +126,11 @@ export default function More({
   const [merchantCategory, setMerchantCategory] = useState("individual");
   const [autopayReason, setAutopayReason] = useState("");
   const [applications, setApplications] = useState<MerchantAutopayApplication[]>([]);
+  const [passkeys, setPasskeys] = useState<PasskeyCredential[]>([]);
+  const [passkeyPassword, setPasskeyPassword] = useState("");
+  const [passkeyDeviceName, setPasskeyDeviceName] = useState("This device");
+  const [removingPasskeyId, setRemovingPasskeyId] = useState("");
+  const [removePasskeyPassword, setRemovePasskeyPassword] = useState("");
   const [deletePassword, setDeletePassword] = useState("");
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [busy, setBusy] = useState("");
@@ -138,6 +148,7 @@ export default function More({
     void getSupportedCurrencies().then((items) => { if (alive && items.length) setCurrencies(CURRENCIES.filter((option) => items.includes(option.code.toUpperCase())).map((option) => option.code.toUpperCase())); }).catch(() => undefined);
     void getSupportedCountries().then((items) => { if (alive && items.length) setCountries(items); }).catch(() => undefined);
     void getMpinStatus().then((value) => { if (alive) setMpinEnabled(value.enabled); }).catch(() => undefined);
+    void getPasskeys().then((items) => { if (alive) setPasskeys(items); }).catch(() => undefined);
     void getAccountSessions().then((items) => { if (alive) setSessions(items); }).catch(() => undefined);
     void getAccountLoginHistory(20).then((items) => { if (alive) setLoginHistory(items); }).catch(() => undefined);
     void getMerchantProfile().then((value) => { if (alive) { setMerchantEnabled(value.enabled); setMerchant(value.profile); } }).catch(() => undefined);
@@ -249,6 +260,36 @@ export default function More({
       report("success", result.previousAlias && result.previousAlias !== result.alias ? "Wallet handle updated. Your previous handle remains reserved and continues resolving to this wallet." : result.previousAlias === result.alias ? "That wallet handle is already active." : "Wallet handle assigned.");
     } catch (cause) { report("error", cause instanceof Error ? cause.message : "Wallet handle could not be changed."); }
     finally { setBusy(""); }
+  }
+
+  async function enableDevicePasskey(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!isPasskeySupported()) { report("error", "Passkeys are unavailable in this browser or origin. Use a supported browser over HTTPS or localhost."); return; }
+    if (!passkeyPassword) { report("error", "Confirm your current account password before enabling a passkey."); return; }
+    setBusy("passkey"); setNotice(null);
+    try {
+      await registerPasskey(passkeyPassword, passkeyDeviceName.trim() || "This device");
+      setPasskeys(await getPasskeys());
+      setPasskeyPassword("");
+      report("success", "Passkey registered and verified. Your private key remains with your device or passkey provider.");
+    } catch (cause) {
+      report("error", cause instanceof Error ? cause.message : "Passkey registration failed. Check the browser prompt and try again.");
+    } finally { setBusy(""); }
+  }
+
+  async function confirmPasskeyRemoval(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!removingPasskeyId) return;
+    setBusy("passkey-remove"); setNotice(null);
+    try {
+      await removePasskey(removingPasskeyId, removePasskeyPassword);
+      setPasskeys(await getPasskeys());
+      setRemovingPasskeyId("");
+      setRemovePasskeyPassword("");
+      report("success", "Passkey removed from this Subtle Pay account. Password sign-in remains available.");
+    } catch (cause) {
+      report("error", cause instanceof Error ? cause.message : "Passkey could not be removed.");
+    } finally { setBusy(""); }
   }
 
   async function changePassword(event: FormEvent<HTMLFormElement>) {
@@ -389,6 +430,34 @@ export default function More({
           <input id="more-mpin" className="form-input" type="password" inputMode="numeric" pattern="[0-9]{6}" maxLength={6} value={pin} onChange={(event) => setPin(event.target.value.replace(/\D/g, "").slice(0, 6))} autoComplete="new-password" placeholder="••••••" required />
           <div className="more-inline-actions"><button type="submit" className="primary-button" disabled={Boolean(busy) || pin.length !== 6}>{mpinEnabled ? "Change MPIN" : "Set MPIN"}</button>{mpinEnabled && <button type="button" className="secondary-button" onClick={() => void disableMpin()} disabled={Boolean(busy)}>Disable MPIN</button>}</div>
         </form>
+      </section>
+
+      <section className="panel more-settings-card more-passkey-card">
+        <div className="panel-heading compact"><div><div className="section-kicker">DEVICE BIOMETRICS</div><h2>Passkeys & biometric sign-in</h2></div><Icon name="fingerprint" size={20} /></div>
+        <p className="more-helper">Register a passkey with your device's native verification prompt. Depending on the device and passkey provider, it may use fingerprint, face recognition, or the device screen lock. Subtle Pay stores the public key and verification metadata—not your device's private key.</p>
+        {!isPasskeySupported() && <p className="inline-notice">This browser or origin does not support WebAuthn passkeys. Use HTTPS on your real domain, or localhost for local development.</p>}
+        <form className="more-form" onSubmit={(event) => void enableDevicePasskey(event)}>
+          <label className="field-label" htmlFor="more-passkey-name">Device label</label>
+          <input id="more-passkey-name" className="form-input" value={passkeyDeviceName} onChange={(event) => setPasskeyDeviceName(event.target.value.slice(0, 60))} maxLength={60} required placeholder="This device" />
+          <label className="field-label" htmlFor="more-passkey-password">Confirm account password</label>
+          <input id="more-passkey-password" className="form-input" type="password" value={passkeyPassword} onChange={(event) => setPasskeyPassword(event.target.value)} autoComplete="current-password" required />
+          <button className="primary-button wide-button" type="submit" disabled={Boolean(busy) || !isPasskeySupported()}>{busy === "passkey" ? "Waiting for device verification…" : "Enable passkey"}</button>
+        </form>
+        <div className="more-divider" />
+        <div className="more-passkey-list-heading"><h3>Registered passkeys</h3><span className="status-pill neutral">{passkeys.length} registered</span></div>
+        {passkeys.length === 0 ? <p className="more-empty-copy">No passkeys registered. Password and MPIN authorization remain available.</p> : <div className="more-passkey-list">
+          {passkeys.map((passkey) => <article className="more-passkey-row" key={passkey.credentialId}>
+            <span className="saved-account-icon"><Icon name="fingerprint" size={18} /></span>
+            <div className="more-passkey-copy"><strong>{passkey.deviceName}</strong><small>{passkey.deviceType === "multiDevice" ? "Synced passkey" : "Device-bound passkey"}{passkey.backedUp ? " · Backup available" : ""}</small><small>Added {time(passkey.createdAt)} · Last used {time(passkey.lastUsedAt)}</small></div>
+            <button type="button" className="secondary-button" disabled={Boolean(busy)} onClick={() => { setRemovingPasskeyId(passkey.credentialId); setRemovePasskeyPassword(""); }}>Remove</button>
+          </article>)}
+        </div>}
+        {removingPasskeyId && <form className="more-form more-passkey-remove-form" onSubmit={(event) => void confirmPasskeyRemoval(event)}>
+          <p className="more-helper">Confirm your account password to remove this passkey from Subtle Pay. This does not erase copies synced by your device/passkey provider.</p>
+          <label className="field-label" htmlFor="more-remove-passkey-password">Account password</label>
+          <input id="more-remove-passkey-password" className="form-input" type="password" value={removePasskeyPassword} onChange={(event) => setRemovePasskeyPassword(event.target.value)} autoComplete="current-password" required />
+          <div className="more-inline-actions"><button type="button" className="secondary-button" onClick={() => { setRemovingPasskeyId(""); setRemovePasskeyPassword(""); }} disabled={Boolean(busy)}>Cancel</button><button type="submit" className="primary-button" disabled={Boolean(busy)}>{busy === "passkey-remove" ? "Removing…" : "Confirm removal"}</button></div>
+        </form>}
       </section>
 
       <section className="panel more-settings-card">
