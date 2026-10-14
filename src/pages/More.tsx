@@ -238,7 +238,7 @@ export default function More({
       setAliasName(next.alias ?? result.alias);
       setAliasPassword("");
       onProfileUpdated?.(next);
-      report("success", result.previousAlias ? "Wallet handle updated. Your previous handle remains reserved and forwards to this wallet." : "Wallet handle assigned.");
+      report("success", result.previousAlias && result.previousAlias !== result.alias ? "Wallet handle updated. Your previous handle remains reserved and continues resolving to this wallet." : result.previousAlias === result.alias ? "That wallet handle is already active." : "Wallet handle assigned.");
     } catch (cause) { report("error", cause instanceof Error ? cause.message : "Wallet handle could not be changed."); }
     finally { setBusy(""); }
   }
