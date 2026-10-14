@@ -3,3 +3,6 @@
 .more-alias-suffix { display: inline-flex; align-items: center; white-space: nowrap; padding: 0 12px; color: #7b8494; font-size: 13px; }
 @keyframes more-avatar-idle { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
 @media (prefers-reduced-motion: reduce) { .more-pixel-avatar { animation: none; } }
+
+.more-profile-verified { display: inline-flex; vertical-align: middle; margin-left: 7px; min-width: 18px; min-height: 18px; align-items: center; justify-content: center; border-radius: 50%; font-size: 11px; font-weight: 800; }
+.more-merchant-dashboard-card .primary-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
