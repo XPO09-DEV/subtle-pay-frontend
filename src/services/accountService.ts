@@ -236,6 +236,7 @@ export interface AccountHome {
   currency: string;
   address: string;
   balanceToken: string;
+  stableBalanceToken?: string | null;
   balanceUsd: string;
   balanceLocal: string;
   asset: string;
@@ -255,6 +256,11 @@ export interface PaymentRecord {
   localValue: string;
   displayCurrency: string;
   status: "pending" | "confirmed" | "failed" | "submitted" | string;
+  asset?: "MON" | "USDC";
+  gasUsed?: string | null;
+  effectiveGasPriceWei?: string | null;
+  feePaidWei?: string | null;
+  feePaidMon?: string | null;
   txHash: string | null;
   note?: string | null;
   confirmedAt?: number | null;
@@ -267,7 +273,7 @@ export interface SendPaymentInput {
   amount: string;
   amountCurrency: string;
   note?: string;
-  asset: "MON";
+  asset: "MON" | "USDC";
   authorizationToken: string;
 }
 
@@ -277,6 +283,11 @@ export interface SendPaymentResult {
   tokenAmount: string;
   usdValue: string;
   txHash: string;
+  asset?: "MON" | "USDC";
+  gasUsed?: string | null;
+  effectiveGasPriceWei?: string | null;
+  feePaidWei?: string | null;
+  feePaidMon?: string | null;
 }
 
 export async function getAccountHome(forceRefresh = false): Promise<AccountHome> {
@@ -405,7 +416,7 @@ export type PaymentAuthorizationIntent = {
   amount: string | number;
   amountCurrency: string;
   note?: string;
-  asset?: "MON";
+  asset?: "MON" | "USDC";
 };
 export async function authorizePayment(
   method: "password" | "mpin",

@@ -22,7 +22,7 @@ async function fetchAccountWalletAssets(address: string, force = false): Promise
   if (home.address.toLowerCase() !== address.toLowerCase()) {
     throw new Error("The authenticated account wallet did not match the requested address. Refresh your session.");
   }
-  return [{
+  const assets: WalletAsset[] = [{
     id: "monad-testnet:native:mon",
     blockchain: "monad-testnet",
     chainLabel: "Monad Testnet",
@@ -37,6 +37,25 @@ async function fetchAccountWalletAssets(address: string, force = false): Promise
     thumbnail: null,
     tokenType: "Native testnet coin",
   }];
+  const stableBalance = Number(home.stableBalanceToken ?? 0);
+  if (Number.isFinite(stableBalance) && stableBalance > 0) {
+    assets.push({
+      id: "monad-testnet:configured:usdc",
+      blockchain: "monad-testnet",
+      chainLabel: "Monad Testnet",
+      tokenName: "Configured testnet stablecoin",
+      tokenSymbol: "USDC",
+      balance: stableBalance,
+      balanceRawInteger: undefined,
+      balanceUsd: stableBalance,
+      priceUsd: 1,
+      tokenDecimals: 6,
+      contractAddress: null,
+      thumbnail: null,
+      tokenType: "Configured testnet token",
+    });
+  }
+  return assets;
 }
 
 function readCookie(name: string): string | null {

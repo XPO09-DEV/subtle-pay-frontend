@@ -17,9 +17,7 @@ import {
   verifyPayQr,
 } from "../services/accountService";
 
-import {
-  isValidEvmAddress,
-} from "../services/walletService";
+import { isValidEvmAddress, type WalletAsset } from "../services/walletService";
 
 import type { ScannedRecipient } from "../utils/qr";
 import { CURRENCIES } from "../data/currencies";
@@ -32,7 +30,7 @@ type SendProps = {
   preferredCurrency?: string;
   walletAddress?: string | null;
   walletChainId?: string | null;
-  walletAssets?: unknown[];
+  walletAssets?: WalletAsset[];
   onConnectWallet?: () => void;
   onTransactionSubmitted?: () => void;
 };
@@ -84,12 +82,14 @@ export default function Send({
   initialRecipient = "",
   preferredCurrency = "USD",
   walletAddress = null,
+  walletAssets = [],
   onTransactionSubmitted,
 }: SendProps) {
   // Form state
   const [recipient, setRecipient] = useState(initialRecipient);
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState<Currency>(preferredCurrency || "USD");
+  const [selectedAsset, setSelectedAsset] = useState<"MON" | "USDC">("MON");
   const [currencies, setCurrencies] = useState<string[]>(["USD", "INR"]);
   const [note, setNote] = useState("");
 
@@ -109,6 +109,7 @@ export default function Send({
   const [authOpen, setAuthOpen] = useState(false);
   const [authMethod, setAuthMethod] = useState<"password" | "mpin" | "passkey">("password");
   const [authSecret, setAuthSecret] = useState("");
+  const [showAuthSecret, setShowAuthSecret] = useState(false);
   const [authError, setAuthError] = useState("");
 
   useEffect(() => {
@@ -122,6 +123,15 @@ export default function Send({
     });
     return () => { alive = false; };
   }, [preferredCurrency]);
+
+  useEffect(() => {
+    const heldAssets = walletAssets.filter((asset) =>
+      (asset.tokenSymbol === "MON" || asset.tokenSymbol === "USDC") && Number(asset.balance) > 0
+    );
+    if (!heldAssets.some((asset) => asset.tokenSymbol === selectedAsset)) {
+      setSelectedAsset((heldAssets[0]?.tokenSymbol as "MON" | "USDC" | undefined) ?? "MON");
+    }
+  }, [walletAssets, selectedAsset]);
 
   // Keep the recipient synchronized with navigation into this page.
   useEffect(() => {
@@ -212,10 +222,14 @@ export default function Send({
     Number.isFinite(amountNumber) &&
     amountNumber > 0;
 
-  const estimatedMon =
-    rates && validAmount
-      ? amountNumber / rates.usdLocal / rates.tokenUsd
-      : null;
+  const selectableAssets = walletAssets.filter((asset) =>
+    (asset.tokenSymbol === "MON" || asset.tokenSymbol === "USDC") && Number(asset.balance) > 0
+  );
+  const estimatedSettlementAmount = rates && validAmount
+    ? selectedAsset === "USDC"
+      ? amountNumber / rates.usdLocal
+      : amountNumber / rates.usdLocal / rates.tokenUsd
+    : null;
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -223,6 +237,7 @@ export default function Send({
     setResult(null);
     setAuthError("");
     setAuthSecret("");
+    setShowAuthSecret(false);
 
     if (!walletAddress) {
       setNotice("Your Subtle Pay account wallet is unavailable. Sign in again before sending.");
@@ -260,7 +275,7 @@ export default function Send({
         amount,
         amountCurrency: currency,
         note: note.trim() || undefined,
-        asset: "MON" as const,
+        asset: selectedAsset,
       };
       const authorization = authMethod === "passkey"
         ? await authorizePaymentWithPasskey(intent)
@@ -358,7 +373,7 @@ export default function Send({
         </div>
 
         <div className="account-testnet-note">
-          Testnet only · Payments settle in native MON on Monad Testnet. Testnet tokens have no cash value.
+          Testnet only · Pay with available MON or a configured stable token. Network gas is always paid in native MON. Testnet tokens have no cash value.
         </div>
 
         <form onSubmit={(event) => void submit(event)}>
@@ -431,6 +446,26 @@ export default function Send({
             {currencies.map((code) => { const option = CURRENCIES.find((item) => item.code.toUpperCase() === code); return <option value={code} key={code}>{option ? `${option.symbol} ${option.name} (${code})` : code}</option>; })}
           </select>
 
+          <label className="field-label" htmlFor="payment-asset">Pay with</label>
+          <select
+            id="payment-asset"
+            className="form-select full-select"
+            value={selectedAsset}
+            onChange={(event) => {
+              setSelectedAsset(event.target.value as "MON" | "USDC");
+              setResult(null);
+              setNotice("");
+            }}
+          >
+            {selectableAssets.length === 0 && <option value="MON">MON · no spendable balance detected</option>}
+            {selectableAssets.map((asset) => (
+              <option key={asset.id} value={asset.tokenSymbol}>
+                {asset.tokenSymbol} · Available {fmt(asset.balance, asset.tokenSymbol === "USDC" ? 6 : 8)}
+              </option>
+            ))}
+          </select>
+          <p className="account-gate-hint">Only assets with a configured Monad Testnet settlement path are selectable. Network fees are paid in native MON.</p>
+
           <label
             className="field-label"
             htmlFor="payment-amount"
@@ -479,15 +514,15 @@ export default function Send({
             </span>
 
             <span>
-              <strong>MON · Monad Testnet</strong>
-              <small>Settlement asset · Native token</small>
+              <strong>{selectedAsset} · Monad Testnet</strong>
+              <small>{selectedAsset === "MON" ? "Native token · pays network gas" : "Configured stable token · network gas is still paid in MON"}</small>
             </span>
 
             <span className="send-balance-copy">
-              {estimatedMon == null
+              {estimatedSettlementAmount == null
                 ? "—"
-                : `≈ ${fmt(estimatedMon, 8)} MON`}
-              <small>Estimate only</small>
+                : `≈ ${fmt(estimatedSettlementAmount, selectedAsset === "USDC" ? 6 : 8)} ${selectedAsset}`}
+              <small>Estimated transfer</small>
             </span>
           </div>
 
@@ -527,31 +562,43 @@ export default function Send({
           <div className="payment-auth-summary">
             <span>To <strong>{recipient.trim()}</strong></span>
             <span>Amount <strong>{amount || "0.00"} {currency}</strong></span>
-            <span>Settlement <strong>Native MON · Monad Testnet</strong></span>
+            <span>Settlement <strong>{selectedAsset} · Monad Testnet</strong></span>
           </div>
           <div className="payment-auth-methods" role="group" aria-label="Payment authorization method">
-            {passkeyEnabled && <button type="button" className={authMethod === "passkey" ? "selected" : ""} onClick={() => { setAuthMethod("passkey"); setAuthSecret(""); setAuthError(""); }}>Passkey / device biometric</button>}
-            {mpinEnabled && <button type="button" className={authMethod === "mpin" ? "selected" : ""} onClick={() => { setAuthMethod("mpin"); setAuthSecret(""); setAuthError(""); }}>6-digit MPIN</button>}
-            <button type="button" className={authMethod === "password" ? "selected" : ""} onClick={() => { setAuthMethod("password"); setAuthSecret(""); setAuthError(""); }}>Account password</button>
+            {passkeyEnabled && <button type="button" className={authMethod === "passkey" ? "selected" : ""} onClick={() => { setAuthMethod("passkey"); setAuthSecret(""); setShowAuthSecret(false); setAuthError(""); }}>Passkey / device biometric</button>}
+            {mpinEnabled && <button type="button" className={authMethod === "mpin" ? "selected" : ""} onClick={() => { setAuthMethod("mpin"); setAuthSecret(""); setShowAuthSecret(false); setAuthError(""); }}>6-digit MPIN</button>}
+            <button type="button" className={authMethod === "password" ? "selected" : ""} onClick={() => { setAuthMethod("password"); setAuthSecret(""); setShowAuthSecret(false); setAuthError(""); }}>Account password</button>
           </div>
           <form onSubmit={(event) => void authorizeAndSubmit(event)}>
             {authMethod === "passkey" ? <p className="account-gate-hint">Continue with your device's passkey prompt. Your browser or passkey provider may verify you with fingerprint, face recognition, or your device screen lock.</p> : <>
               <label className="field-label" htmlFor="payment-auth-secret">{authMethod === "mpin" ? "Enter your six-digit MPIN" : "Enter your account password"}</label>
-              <input
-                id="payment-auth-secret"
-                className="form-input"
-                type="password"
-                inputMode={authMethod === "mpin" ? "numeric" : undefined}
-                autoComplete={authMethod === "mpin" ? "one-time-code" : "current-password"}
-                maxLength={authMethod === "mpin" ? 6 : 128}
-                value={authSecret}
-                onChange={(event) => { setAuthSecret(authMethod === "mpin" ? event.target.value.replace(/\D/g, "").slice(0, 6) : event.target.value); setAuthError(""); }}
-                required
-              />
+              <div style={{ position: "relative" }}>
+                <input
+                  id="payment-auth-secret"
+                  className="form-input"
+                  style={{ paddingRight: 76 }}
+                  type={showAuthSecret ? "text" : "password"}
+                  inputMode={authMethod === "mpin" ? "numeric" : undefined}
+                  autoComplete={authMethod === "mpin" ? "one-time-code" : "current-password"}
+                  maxLength={authMethod === "mpin" ? 6 : 128}
+                  value={authSecret}
+                  onChange={(event) => { setAuthSecret(authMethod === "mpin" ? event.target.value.replace(/\D/g, "").slice(0, 6) : event.target.value); setAuthError(""); }}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowAuthSecret((visible) => !visible)}
+                  aria-label={showAuthSecret ? "Hide payment credential" : "Show payment credential"}
+                  aria-pressed={showAuthSecret}
+                  style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", fontSize: 12, fontWeight: 600, color: "#2563eb", padding: 6 }}
+                >
+                  {showAuthSecret ? "Hide" : "Show"}
+                </button>
+              </div>
             </>}
             {authError && <p className="inline-notice" role="alert">{authError}</p>}
             <div className="payment-auth-actions">
-              <button type="button" className="secondary-button" disabled={busy} onClick={() => { setAuthOpen(false); setAuthSecret(""); setAuthError(""); }}>Cancel</button>
+              <button type="button" className="secondary-button" disabled={busy} onClick={() => { setAuthOpen(false); setAuthSecret(""); setShowAuthSecret(false); setAuthError(""); }}>Cancel</button>
               <button type="submit" className="primary-button" disabled={busy || (authMethod !== "passkey" && !authSecret) || (authMethod === "mpin" && authSecret.length !== 6)}>
                 {busy ? (authMethod === "passkey" ? "Waiting for device…" : "Authorizing…") : authMethod === "passkey" ? "Verify with passkey & send" : "Authorize & send"}
               </button>

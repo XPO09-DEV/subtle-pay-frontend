@@ -82,6 +82,8 @@ export default function PaymentReceipt({
   const requestedAmount = formatRequestedAmount(amount, currency);
   const usdValue = Number(result.usdValue);
   const hasUsdValue = result.usdValue !== "" && Number.isFinite(usdValue);
+  const asset = result.asset === "USDC" ? "USDC" : "MON";
+  const effectiveGasPriceGwei = result.effectiveGasPriceWei ? Number(result.effectiveGasPriceWei) / 1_000_000_000 : null;
   const explorerUrl = result.txHash
     ? "https://testnet.monadexplorer.com/tx/" + encodeURIComponent(result.txHash)
     : "";
@@ -118,7 +120,7 @@ export default function PaymentReceipt({
         <span className="payment-receipt-eyebrow">SETTLEMENT AMOUNT</span>
         <div className="payment-receipt-token-amount">
           <strong>{result.tokenAmount || "—"}</strong>
-          <span>MON</span>
+          <span>{asset}</span>
         </div>
         <p className="payment-receipt-requested">
           Requested {requestedAmount}
@@ -183,7 +185,7 @@ export default function PaymentReceipt({
           </div>
           <div className="payment-receipt-row">
             <dt>Settlement asset</dt>
-            <dd>MON <small>Native testnet token</small></dd>
+            <dd>{asset} <small>{asset === "MON" ? "Native testnet token" : "Configured testnet token"}</small></dd>
           </div>
           <div className="payment-receipt-row">
             <dt>Payment reference</dt>
@@ -196,6 +198,18 @@ export default function PaymentReceipt({
                 </button>
               )}
             </dd>
+          </div>
+          <div className="payment-receipt-row">
+            <dt>Gas used</dt>
+            <dd>{result.gasUsed ? Number(result.gasUsed).toLocaleString() : "Awaiting on-chain receipt"}</dd>
+          </div>
+          <div className="payment-receipt-row">
+            <dt>Effective gas price</dt>
+            <dd>{effectiveGasPriceGwei !== null && Number.isFinite(effectiveGasPriceGwei) ? effectiveGasPriceGwei.toLocaleString(undefined, { maximumFractionDigits: 4 }) + " gwei" : "Awaiting on-chain receipt"}</dd>
+          </div>
+          <div className="payment-receipt-row">
+            <dt>Network fee paid</dt>
+            <dd>{result.feePaidMon ? result.feePaidMon + " MON" : "Awaiting on-chain receipt"}<small>Paid in native MON on Monad Testnet, separate from the transfer amount.</small></dd>
           </div>
           <div className="payment-receipt-row payment-receipt-hash-row">
             <dt>Transaction hash</dt>
